@@ -4,10 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="047039a2-bea8-4df5-8c9a-1b402605268c" name="Changes" comment="fully working.">
-      <change afterPath="$PROJECT_DIR$/visual-odometry/VO_cuad.py" afterDir="false" />
+    <list default="true" id="047039a2-bea8-4df5-8c9a-1b402605268c" name="Changes" comment="created the code for using cv2_cuda for using GPU and Working">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/visual-odometry/VO.py" beforeDir="false" afterPath="$PROJECT_DIR$/visual-odometry/VO.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -133,7 +131,31 @@
       <option name="project" value="LOCAL" />
       <updated>1747992502742</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Updated the trajMap saving, with flip vertically so can view the output">
+      <option name="closed" value="true" />
+      <created>1747993968211</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1747993968211</updated>
+    </task>
+    <task id="LOCAL-00004" summary="created the code for using cv2_cuda for using GPU and Working">
+      <option name="closed" value="true" />
+      <created>1747994015663</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1747994015663</updated>
+    </task>
+    <task id="LOCAL-00005" summary="created the code for using cv2_cuda for using GPU and Working">
+      <option name="closed" value="true" />
+      <created>1747994021481</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1747994021481</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -150,6 +172,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="initial commit" />
     <MESSAGE value="fully working." />
-    <option name="LAST_COMMIT_MESSAGE" value="fully working." />
+    <MESSAGE value="Updated the trajMap saving, with flip vertically so can view the output" />
+    <MESSAGE value="created the code for using cv2_cuda for using GPU and Working" />
+    <option name="LAST_COMMIT_MESSAGE" value="created the code for using cv2_cuda for using GPU and Working" />
   </component>
 </project>
