@@ -1,0 +1,15 @@
+matplotlib
+numpy
+opencv-python
+packaging
+pyparsing
+python-dateutil
+six
+tqdm
+folium
+openrouteservice
+pyproj
+shapely
+googlemaps
+polyline
+scipy

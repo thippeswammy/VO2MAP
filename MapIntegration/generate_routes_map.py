@@ -15,12 +15,12 @@ destination_name = "Ballari Karnataka"
 origin_geocode = client.pelias_search(text=origin_name)
 destination_geocode = client.pelias_search(text=destination_name)
 
-origin_coords = origin_geocode['features'][0]['geometry']['coordinates']
-destination_coords = destination_geocode['features'][0]['geometry']['coordinates']
+origin_coordinates = origin_geocode['features'][0]['geometry']['coordinates']
+destination_coordinates = destination_geocode['features'][0]['geometry']['coordinates']
 
 # Define coordinates (longitude, latitude)
-origin = origin_coords  # Gitam University, Bangalore
-destination = destination_coords  # Ballari, Karnataka
+origin = origin_coordinates  # Gitam University, Bangalore
+destination = destination_coordinates  # Ballari, Karnataka
 
 # Output directory for .npy files
 output_dir = "routes_npy"
@@ -48,18 +48,18 @@ for i, pref in enumerate(preferences):
         )
 
         # Decode coordinates and convert to (lat, lon)
-        coords = route['features'][0]['geometry']['coordinates']
-        latlon_coords = [(lat, lon) for lon, lat in coords]
+        coordinates = route['features'][0]['geometry']['coordinates']
+        latlon_coordinates = [(lat, lon) for lon, lat in coordinates]
 
         # Plot route on map
         folium.PolyLine(
-            latlon_coords,
+            latlon_coordinates,
             color=colors[i % len(colors)],
             weight=5,
             opacity=0.9
         ).add_to(m)
 
-        latlon_coords1 = [(lat, lon, 0) for lat, lon in latlon_coords]
+        latlon_coords1 = [(lat, lon, 0) for lat, lon in latlon_coordinates]
         np_array = np.array(latlon_coords1)
         # Save coordinates as .npy
         np_array = np.array(latlon_coords1)

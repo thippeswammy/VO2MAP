@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="047039a2-bea8-4df5-8c9a-1b402605268c" name="Changes" comment="Geocoded origin and destination using ORS Pelias search for latitude and longitude, and enhanced route visualization with .npy export.">
-      <change afterPath="$PROJECT_DIR$/MapIntegration/generate_detailed_route_mapping.py" afterDir="false" />
-    </list>
+    <list default="true" id="047039a2-bea8-4df5-8c9a-1b402605268c" name="Changes" comment="Added some papers" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -41,12 +39,13 @@
     "Python.generate_routes_map.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master",
-    "last_opened_file_path": "F:/RunningProjects/VisualOdemetry/VO2Map/CameraCal",
+    "last_opened_file_path": "F:/RunningProjects/VisualOdemetry/VO2Map/papers",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="F:\RunningProjects\VisualOdemetry\VO2Map\papers" />
       <recent name="F:\RunningProjects\VisualOdemetry\VO2Map\CameraCal" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
@@ -248,7 +247,23 @@
       <option name="project" value="LOCAL" />
       <updated>1747997455849</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Add detailed route steps and lane ID tagging in .npy export.">
+      <option name="closed" value="true" />
+      <created>1747997722815</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1747997722815</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Added some papers">
+      <option name="closed" value="true" />
+      <created>1747997996837</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1747997996837</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -271,7 +286,9 @@
     <MESSAGE value="camera_cal.py is created to get intrinsic and extrinsic parameters of camera, by calibration." />
     <MESSAGE value="route visualization by Integrated with OpenRouteService(ORS-API) for routing, and Visualized routes using Folium, and saves the map and Added markers at origin and destination place." />
     <MESSAGE value="Geocoded origin and destination using ORS Pelias search for latitude and longitude, and enhanced route visualization with .npy export." />
-    <option name="LAST_COMMIT_MESSAGE" value="Geocoded origin and destination using ORS Pelias search for latitude and longitude, and enhanced route visualization with .npy export." />
+    <MESSAGE value="Add detailed route steps and lane ID tagging in .npy export." />
+    <MESSAGE value="Added some papers" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added some papers" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
