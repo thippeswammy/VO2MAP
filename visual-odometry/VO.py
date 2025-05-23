@@ -36,7 +36,7 @@ elif args.dataset_type == 'KITTI':
 
 if __name__ == "__main__":
     # define the output pose file
-    trajMap = np.zeros((args.len_trajMap, args.len_trajMap, 3), dtype=np.uint8)
+    trajMap = trajMap1 = np.zeros((args.len_trajMap, args.len_trajMap, 3), dtype=np.uint8)
     if args.dataset_type == 'CUSTOM':
         out_pose_file = './Results/' + 'CUSTOM' + '-' + seq + '-traj_est.txt'
     elif args.dataset_type == 'KITTI':
@@ -151,6 +151,6 @@ if __name__ == "__main__":
 
     # Save the trajectory result depending on the dataset
     if args.dataset_type == 'CUSTOM':
-        cv2.imwrite(('Results/CUSTOM' + '-' + seq + '_trajMap.png'), trajMap)
+        cv2.imwrite(('Results/CUSTOM' + '-' + seq + '_trajMap.png'), trajMap1)
     elif args.dataset_type == 'KITTI':
-        cv2.imwrite('Results/KITTI' + '-' + seq + '_trajMap.png', trajMap)
+        cv2.imwrite('Results/KITTI' + '-' + seq + '_trajMap.png', trajMap1)
