@@ -8,42 +8,39 @@ from tqdm import tqdm
 from pose_evaluation_utils import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data_dir", type=str, default='../data/',
+parser.add_argument("--data_dir", type=str, default='../Data/',
                     help="dataset root")
-parser.add_argument("--dataset_type", type=str, default='KITTI', choices=['KITTI', 'CUSTOM'],
+parser.add_argument("--dataset_type", type=str, default='CUSTOM', choices=['KITTI', 'CUSTOM'],
                     help="dataset type")
-parser.add_argument("--len_trajMap", type=int, default=1200,
+parser.add_argument("--len_trajMap", type=int, default=700,
                     help="size of the trajectory map")
 args = parser.parse_args()
 
 # dataset directory
 if args.dataset_type == 'CUSTOM':
-    seq = '01'
-    img_data_dir = args.data_dir_root + 'CUSTOM/' + seq
+    seq = '02'
+    img_data_dir = args.data_dir + 'CUSTOM/' + seq
 elif args.dataset_type == 'KITTI':
     seq = '01'
-    img_data_dir = args.data_dir_root + 'KITTI/' + seq
+    img_data_dir = args.data_dir + 'KITTI/' + seq
 
 # intrinsic parameters
-if args.dataset_type == 'TUM':
-    width = 640
-    height = 480
-    fx, fy, cx, cy = [535.4, 539.2, 320.1, 247.6]
+if args.dataset_type == 'CUSTOM':
+    width = 1920.0
+    height = 880.0
+    fx, fy, cx, cy = [1101.86382, 1114.96528, 885.646472, 443.776090]
 elif args.dataset_type == 'KITTI':
     width = 1241.0
     height = 376.0
     fx, fy, cx, cy = [718.8560, 718.8560, 607.1928, 185.2157]
-    # width = 1920.0
-    # height = 1080.0
-    # fx, fy, cx, cy = [528.45704204, 528.94853071, 643.5054566, 357.67922371]
 
 if __name__ == "__main__":
     # define the output pose file
     trajMap = np.zeros((args.len_trajMap, args.len_trajMap, 3), dtype=np.uint8)
-    if args.dataset_type == 'TUM':
-        out_pose_file = './' + 'TUM' + '-' + seq + '-traj_est.txt'
+    if args.dataset_type == 'CUSTOM':
+        out_pose_file = './Results/' + 'CUSTOM' + '-' + seq + '-traj_est.txt'
     elif args.dataset_type == 'KITTI':
-        out_pose_file = './' + 'KITTI' + '-' + seq + '-traj_est.txt'
+        out_pose_file = './Results/' + 'KITTI' + '-' + seq + '-traj_est.txt'
 
     # get the image list in the directory
     img_list = glob(img_data_dir + '/*.png')
@@ -134,7 +131,7 @@ if __name__ == "__main__":
         offset_draw_small = (int(args.len_trajMap / 8))
 
         # Different starting points depending on the dataset
-        if args.dataset_type == 'TUM':
+        if args.dataset_type == 'CUSTOM':
             cv2.circle(trajMap,
                        (int(float(curr_t[0]) + offset_draw), int(float(curr_t[2]) + offset_draw_small)),
                        1, (255, 0, 0), 2)
@@ -142,7 +139,8 @@ if __name__ == "__main__":
             cv2.circle(trajMap, (int(curr_t[0] + offset_draw), int(curr_t[2]) + offset_draw_small), 1, (255, 0, 0), 2)
 
         trajMap1 = cv2.flip(trajMap, 0)
-        cv2.imshow('Trajectory CUDA', trajMap1)
+        trajMap1 = cv2.resize(trajMap1, (700, 700))
+        cv2.imshow('Trajectory', trajMap1)
         cv2.waitKey(1)
 
     # Calculate and display average FPS
@@ -152,7 +150,7 @@ if __name__ == "__main__":
     print(f"Average FPS: {avg_fps:.2f}")
 
     # Save the trajectory result depending on the dataset
-    if args.dataset_type == 'TUM':
-        cv2.imwrite(('TUM' + '-' + seq + '_trajMap.png'), trajMap)
+    if args.dataset_type == 'CUSTOM':
+        cv2.imwrite(('Results/CUSTOM' + '-' + seq + '_trajMap.png'), trajMap)
     elif args.dataset_type == 'KITTI':
-        cv2.imwrite('KITTI' + '-' + seq + '_trajMap.png', trajMap)
+        cv2.imwrite('Results/KITTI' + '-' + seq + '_trajMap.png', trajMap)
