@@ -4,8 +4,93 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="047039a2-bea8-4df5-8c9a-1b402605268c" name="Changes" comment="created the code for using cv2_cuda for using GPU and Working">
+    <list default="true" id="047039a2-bea8-4df5-8c9a-1b402605268c" name="Changes" comment="Images for Calibration of Dash camera">
+      <change afterPath="$PROJECT_DIR$/CameraCal/CameraCalibrationMatrix" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/CameraCal/camera_cal.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03771.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03771.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03774.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03774.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03969.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03969.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03970.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03970.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03976.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03976.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03977.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03977.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03981.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03981.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03982.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03982.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03983.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03983.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03984.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03984.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03985.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03985.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03986.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03986.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03987.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03987.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03988.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03988.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03989.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03989.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03990.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03990.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03991.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03991.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03992.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03992.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03993.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03993.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03994.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03994.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03995.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03995.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03996.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03996.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03997.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03997.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03998.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03998.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_03999.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_03999.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04000.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04000.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04010.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04010.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04011.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04011.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04012.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04012.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04013.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04013.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04014.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04014.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04015.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04015.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04016.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04016.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04017.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04017.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04018.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04018.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04019.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04019.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04020.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04020.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04021.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04021.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04022.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04022.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04023.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04023.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04024.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04024.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04025.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04025.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04026.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04026.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04027.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04027.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04028.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04028.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04078.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04078.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04079.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04079.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04080.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04080.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04081.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04081.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04082.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04082.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04083.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04083.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04084.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04084.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04085.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04085.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04086.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04086.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04087.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04087.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04088.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04088.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04089.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04089.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04090.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04090.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04091.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04091.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04092.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04092.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04093.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04093.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04094.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04094.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04095.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04095.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04096.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04096.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04097.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04097.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04098.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04098.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04099.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04099.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04100.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04100.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04101.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04101.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04102.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04102.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04103.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04103.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04104.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04104.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04105.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04105.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04106.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04106.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04107.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04107.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04108.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04108.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04109.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04109.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04301.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04301.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04302.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04302.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04303.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04303.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04304.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04304.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04305.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04305.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MapIntegration/DashCameraImg/road9_04306.png" beforeDir="false" afterPath="$PROJECT_DIR$/CameraCal/DashCameraImg/road9_04306.png" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,17 +122,23 @@
   "keyToString": {
     "Python.VO.executor": "Run",
     "Python.VO_cuad.executor": "Run",
+    "Python.camera_cal.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master",
+    "last_opened_file_path": "F:/RunningProjects/VisualOdemetry/VO2Map/CameraCal",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
 }]]></component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="F:\RunningProjects\VisualOdemetry\VO2Map\CameraCal" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="F:\RunningProjects\VisualOdemetry\VO2Map\CameraCal" />
       <recent name="F:\RunningProjects\VisualOdemetry\VO2Map\visual-odometry\Results" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.VO">
+  <component name="RunManager" selected="Python.camera_cal">
     <configuration name="VO" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="VO2Map" />
       <option name="ENV_FILES" value="" />
@@ -92,8 +183,31 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="camera_cal" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="VO2Map" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/CameraCal" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/CameraCal/camera_cal.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.camera_cal" />
         <item itemvalue="Python.VO" />
         <item itemvalue="Python.VO_cuad" />
       </list>
@@ -155,7 +269,15 @@
       <option name="project" value="LOCAL" />
       <updated>1747994021481</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="Images for Calibration of Dash camera">
+      <option name="closed" value="true" />
+      <created>1747994722811</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1747994722811</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -174,6 +296,43 @@
     <MESSAGE value="fully working." />
     <MESSAGE value="Updated the trajMap saving, with flip vertically so can view the output" />
     <MESSAGE value="created the code for using cv2_cuda for using GPU and Working" />
-    <option name="LAST_COMMIT_MESSAGE" value="created the code for using cv2_cuda for using GPU and Working" />
+    <MESSAGE value="Images for Calibration of Dash camera" />
+    <option name="LAST_COMMIT_MESSAGE" value="Images for Calibration of Dash camera" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/CameraCal/camera_cal.py</url>
+          <line>81</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/CameraCal/camera_cal.py</url>
+          <line>85</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/CameraCal/camera_cal.py</url>
+          <line>82</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/CameraCal/camera_cal.py</url>
+          <line>84</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/CameraCal/camera_cal.py</url>
+          <line>80</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/CameraCal/camera_cal.py</url>
+          <line>79</line>
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
