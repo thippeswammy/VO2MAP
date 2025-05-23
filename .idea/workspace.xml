@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="047039a2-bea8-4df5-8c9a-1b402605268c" name="Changes" comment="route visualization by Integrated with OpenRouteService(ORS-API) for routing, and Visualized routes using Folium, and saves the map and Added markers at origin and destination place.">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MapIntegration/generate_routes_map.py" beforeDir="false" afterPath="$PROJECT_DIR$/MapIntegration/generate_routes_map.py" afterDir="false" />
+    <list default="true" id="047039a2-bea8-4df5-8c9a-1b402605268c" name="Changes" comment="Geocoded origin and destination using ORS Pelias search for latitude and longitude, and enhanced route visualization with .npy export.">
+      <change afterPath="$PROJECT_DIR$/MapIntegration/generate_detailed_route_mapping.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -241,7 +240,15 @@
       <option name="project" value="LOCAL" />
       <updated>1747997343407</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Geocoded origin and destination using ORS Pelias search for latitude and longitude, and enhanced route visualization with .npy export.">
+      <option name="closed" value="true" />
+      <created>1747997455849</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1747997455849</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -263,7 +270,8 @@
     <MESSAGE value="Images for Calibration of Dash camera" />
     <MESSAGE value="camera_cal.py is created to get intrinsic and extrinsic parameters of camera, by calibration." />
     <MESSAGE value="route visualization by Integrated with OpenRouteService(ORS-API) for routing, and Visualized routes using Folium, and saves the map and Added markers at origin and destination place." />
-    <option name="LAST_COMMIT_MESSAGE" value="route visualization by Integrated with OpenRouteService(ORS-API) for routing, and Visualized routes using Folium, and saves the map and Added markers at origin and destination place." />
+    <MESSAGE value="Geocoded origin and destination using ORS Pelias search for latitude and longitude, and enhanced route visualization with .npy export." />
+    <option name="LAST_COMMIT_MESSAGE" value="Geocoded origin and destination using ORS Pelias search for latitude and longitude, and enhanced route visualization with .npy export." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
