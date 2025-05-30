@@ -1,0 +1,7 @@
+/working/vo_mono_camera(Taeyoung96)/MapIntegration/DashCameraImg/
+/working/vo_mono_camera(Taeyoung96)/MapIntegration/ZedCameraImg/
+
+.vscode
+*.pyc
+videos/
+*.ply
