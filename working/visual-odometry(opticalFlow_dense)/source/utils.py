@@ -31,7 +31,27 @@ def drawTrajectory(trajMap, trackedPoints, groundtruthPoints, frame_no, len_traj
     if 0 <= x_est < len_trajMap and 0 <= z_est < len_trajMap:
         cv2.circle(trajMap, (x_est, z_est), 1, (255, 0, 0), 5)
 
-    # Draw ground truth trajectory (green)
+    # Draw ground truth trajectory (white)
+    x_gt = int(groundtruthPoints[-1, 0] + offset_draw)
+    z_gt = int(groundtruthPoints[-1, 2] + offset_draw_small)
+    if 0 <= x_gt < len_trajMap and 0 <= z_gt < len_trajMap:
+        cv2.circle(trajMap, (x_gt, z_gt), 1, (255, 255, 255), 2)
+
+    trajMap1 = cv2.flip(trajMap, 0)
+    cv2.imshow('Trajectory', cv2.resize(trajMap1, (1000, 700)))
+
+
+def drawTrajectory_vo(trajMap, trackedPoints, groundtruthPoints, frame_no, len_trajMap):
+    offset_draw = int(len_trajMap / 2)
+    offset_draw_small = int(len_trajMap / 8)
+
+    # Draw estimated trajectory (blue)
+    x_est = int(trackedPoints[-1, 0] + offset_draw)
+    z_est = int(-trackedPoints[-1, 2] + offset_draw_small)
+    if 0 <= x_est < len_trajMap and 0 <= z_est < len_trajMap:
+        cv2.circle(trajMap, (x_est, z_est), 1, (255, 0, 0), 5)
+
+    # Draw ground truth trajectory (white)
     x_gt = int(groundtruthPoints[-1, 0] + offset_draw)
     z_gt = int(groundtruthPoints[-1, 2] + offset_draw_small)
     if 0 <= x_gt < len_trajMap and 0 <= z_gt < len_trajMap:

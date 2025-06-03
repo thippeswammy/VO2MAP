@@ -52,14 +52,38 @@ class DatasetReaderKITTI:
         with open(groundtruthFile) as f:
             lines = f.readlines()
 
-            _, _, _, tx, _, _, _, ty, _, _, _, tz = list(map(float, lines[frameId].rstrip().split(" ")))
-            _, _, _, tx_prev, _, _, _, ty_prev, _, _, _, tz_prev = list(
+            x11, x12, x13, tx, y11, y12, y13, ty, z11, z12, z13, tz = list(
+                map(float, lines[frameId].rstrip().split(" ")))
+            x21, x22, x23, tx_prev, y21, y22, y23, ty_prev, z21, z22, z23, tz_prev = list(
                 map(float, lines[frameId - 1].rstrip().split(" ")))
 
             position = (tx, ty, tz)
             scale = sqrt((tx - tx_prev) ** 2 + (ty - ty_prev) ** 2 + (tz - tz_prev) ** 2)
 
             return position, scale
+
+    def readGroundTruthPositionRotation(self, frameId):
+        groundtruthFile = os.path.join(self._datasetPath, "poses.txt")
+        with open(groundtruthFile) as f:
+            lines = f.readlines()
+
+            x11, x12, x13, tx, y11, y12, y13, ty, z11, z12, z13, tz = list(
+                map(float, lines[frameId].rstrip().split(" ")))
+            x21, x22, x23, tx_prev, y21, y22, y23, ty_prev, z21, z22, z23, tz_prev = list(
+                map(float, lines[frameId - 1].rstrip().split(" ")))
+
+            position = (tx, ty, tz)
+            scale = sqrt((tx - tx_prev) ** 2 + (ty - ty_prev) ** 2 + (tz - tz_prev) ** 2)
+
+            R_curr = np.array([[x11, x12, x13],
+                               [y11, y12, y13],
+                               [z11, z12, z13]])
+
+            R_prev = np.array([[x21, x22, x23],
+                               [y21, y22, y23],
+                               [z21, z22, z23]])
+
+            return position, scale, R_curr, R_prev
 
     def getFramesCount(self):
         return self._numFrames

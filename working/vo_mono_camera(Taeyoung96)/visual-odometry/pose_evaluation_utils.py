@@ -2,7 +2,10 @@
 # https://vision.in.tum.de/data/datasets/rgbd-dataset/tools#absolute_trajectory_error_ate
 
 import math
+
+import matplotlib.pyplot as plt
 import numpy as np
+
 
 def compute_ate(gtruth_file, pred_file):
     gtruth_list = read_file_list(gtruth_file)
@@ -11,20 +14,33 @@ def compute_ate(gtruth_file, pred_file):
     if len(matches) < 2:
         return False
 
-    gtruth_xyz = np.array([[float(value) for value in gtruth_list[a][0:3]] for a,b in matches])
-    pred_xyz = np.array([[float(value) for value in pred_list[b][0:3]] for a,b in matches])
-    
+    gtruth_xyz = np.array([[float(value) for value in gtruth_list[a][0:3]] for a, b in matches])
+    pred_xyz = np.array([[float(value) for value in pred_list[b][0:3]] for a, b in matches])
+
+    def plot_trajectories(gtruth_xyz, pred_xyz):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot(gtruth_xyz[:, 0], gtruth_xyz[:, 1], gtruth_xyz[:, 2], label='Ground Truth', color='blue')
+        ax.plot(pred_xyz[:, 0], pred_xyz[:, 1], pred_xyz[:, 2], label='Predicted', color='red')
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.legend()
+        plt.show()
+
+    plot_trajectories(gtruth_xyz, pred_xyz)
     # Make sure that the first matched frames align (no need for rotational alignment as
     # all the predicted/ground-truth snippets have been converted to use the same coordinate
     # system with the first frame of the snippet being the origin).
     offset = gtruth_xyz[0] - pred_xyz[0]
-    pred_xyz += offset[None,:]
+    pred_xyz += offset[None, :]
 
     # Optimize the scaling factor
-    scale = np.sum(gtruth_xyz * pred_xyz)/np.sum(pred_xyz ** 2)
+    scale = np.sum(gtruth_xyz * pred_xyz) / np.sum(pred_xyz ** 2)
     alignment_error = pred_xyz * scale - gtruth_xyz
-    rmse = np.sqrt(np.sum(alignment_error ** 2))/len(matches)
+    rmse = np.sqrt(np.sum(alignment_error ** 2)) / len(matches)
     return rmse
+
 
 def read_file_list(filename):
     """
@@ -43,12 +59,14 @@ def read_file_list(filename):
     """
     file = open(filename)
     data = file.read()
-    lines = data.replace(","," ").replace("\t"," ").split("\n") 
-    list = [[v.strip() for v in line.split(" ") if v.strip()!=""] for line in lines if len(line)>0 and line[0]!="#"]
-    list = [(float(l[0]),l[1:]) for l in list if len(l)>1]
+    lines = data.replace(",", " ").replace("\t", " ").split("\n")
+    list = [[v.strip() for v in line.split(" ") if v.strip() != ""] for line in lines if
+            len(line) > 0 and line[0] != "#"]
+    list = [(float(l[0]), l[1:]) for l in list if len(l) > 1]
     return dict(list)
 
-def associate(first_list, second_list,offset,max_difference):
+
+def associate(first_list, second_list, offset, max_difference):
     """
     Associate two dictionaries of (stamp,data). As the time stamps never match exactly, we aim 
     to find the closest match for every input tuple.
@@ -65,9 +83,9 @@ def associate(first_list, second_list,offset,max_difference):
     """
     first_keys = list(first_list.keys())
     second_keys = list(second_list.keys())
-    potential_matches = [(abs(a - (b + offset)), a, b) 
-                         for a in first_keys 
-                         for b in second_keys 
+    potential_matches = [(abs(a - (b + offset)), a, b)
+                         for a in first_keys
+                         for b in second_keys
                          if abs(a - (b + offset)) < max_difference]
     potential_matches.sort()
     matches = []
@@ -76,14 +94,16 @@ def associate(first_list, second_list,offset,max_difference):
             first_keys.remove(a)
             second_keys.remove(b)
             matches.append((a, b))
-    
+
     matches.sort()
     return matches
+
 
 def rot2quat(R):
     rz, ry, rx = mat2euler(R)
     qw, qx, qy, qz = euler2quat(rz, ry, rx)
     return qw, qx, qy, qz
+
 
 def quat2mat(q):
     ''' Calculate rotation matrix corresponding to quaternion
@@ -119,20 +139,27 @@ def quat2mat(q):
     True
     '''
     w, x, y, z = q
-    Nq = w*w + x*x + y*y + z*z
+    Nq = w * w + x * x + y * y + z * z
     if Nq < 1e-8:
         return np.eye(3)
-    s = 2.0/Nq
-    X = x*s
-    Y = y*s
-    Z = z*s
-    wX = w*X; wY = w*Y; wZ = w*Z
-    xX = x*X; xY = x*Y; xZ = x*Z
-    yY = y*Y; yZ = y*Z; zZ = z*Z
+    s = 2.0 / Nq
+    X = x * s
+    Y = y * s
+    Z = z * s
+    wX = w * X;
+    wY = w * Y;
+    wZ = w * Z
+    xX = x * X;
+    xY = x * Y;
+    xZ = x * Z
+    yY = y * Y;
+    yZ = y * Z;
+    zZ = z * Z
     return np.array(
-           [[ 1.0-(yY+zZ), xY-wZ, xZ+wY ],
-            [ xY+wZ, 1.0-(xX+zZ), yZ-wX ],
-            [ xZ-wY, yZ+wX, 1.0-(xX+yY) ]])
+        [[1.0 - (yY + zZ), xY - wZ, xZ + wY],
+         [xY + wZ, 1.0 - (xX + zZ), yZ - wX],
+         [xZ - wY, yZ + wX, 1.0 - (xX + yY)]])
+
 
 def mat2euler(M, cy_thresh=None, seq='zyx'):
     '''
@@ -187,18 +214,18 @@ def mat2euler(M, cy_thresh=None, seq='zyx'):
             cy_thresh = _FLOAT_EPS_4
     r11, r12, r13, r21, r22, r23, r31, r32, r33 = M.flat
     # cy: sqrt((cos(y)*cos(z))**2 + (cos(x)*cos(y))**2)
-    cy = math.sqrt(r33*r33 + r23*r23)
-    if seq=='zyx':
-        if cy > cy_thresh: # cos(y) not close to zero, standard form
-            z = math.atan2(-r12,  r11) # atan2(cos(y)*sin(z), cos(y)*cos(z))
-            y = math.atan2(r13,  cy) # atan2(sin(y), cy)
-            x = math.atan2(-r23, r33) # atan2(cos(y)*sin(x), cos(x)*cos(y))
-        else: # cos(y) (close to) zero, so x -> 0.0 (see above)
+    cy = math.sqrt(r33 * r33 + r23 * r23)
+    if seq == 'zyx':
+        if cy > cy_thresh:  # cos(y) not close to zero, standard form
+            z = math.atan2(-r12, r11)  # atan2(cos(y)*sin(z), cos(y)*cos(z))
+            y = math.atan2(r13, cy)  # atan2(sin(y), cy)
+            x = math.atan2(-r23, r33)  # atan2(cos(y)*sin(x), cos(x)*cos(y))
+        else:  # cos(y) (close to) zero, so x -> 0.0 (see above)
             # so r21 -> sin(z), r22 -> cos(z) and
-            z = math.atan2(r21,  r22)
-            y = math.atan2(r13,  cy) # atan2(sin(y), cy)
+            z = math.atan2(r21, r22)
+            y = math.atan2(r13, cy)  # atan2(sin(y), cy)
             x = 0.0
-    elif seq=='xyz':
+    elif seq == 'xyz':
         if cy > cy_thresh:
             y = math.atan2(-r31, cy)
             x = math.atan2(r32, r33)
@@ -206,15 +233,18 @@ def mat2euler(M, cy_thresh=None, seq='zyx'):
         else:
             z = 0.0
             if r31 < 0:
-                y = np.pi/2
+                y = np.pi / 2
                 x = math.atan2(r12, r13)
             else:
-                y = -np.pi/2
+                y = -np.pi / 2
     else:
         raise Exception('Sequence not recognized')
     return z, y, x
 
+
 import functools
+
+
 def euler2mat(z=0, y=0, x=0, isRadian=True):
     ''' Return matrix for rotations around z, y and x axes
     Uses the z, then y, then x convention above
@@ -277,38 +307,39 @@ def euler2mat(z=0, y=0, x=0, isRadian=True):
     '''
 
     if not isRadian:
-        z = ((np.pi)/180.) * z
-        y = ((np.pi)/180.) * y
-        x = ((np.pi)/180.) * x
-    assert z>=(-np.pi) and z < np.pi, 'Inapprorpriate z: %f' % z
-    assert y>=(-np.pi) and y < np.pi, 'Inapprorpriate y: %f' % y
-    assert x>=(-np.pi) and x < np.pi, 'Inapprorpriate x: %f' % x    
+        z = ((np.pi) / 180.) * z
+        y = ((np.pi) / 180.) * y
+        x = ((np.pi) / 180.) * x
+    assert z >= (-np.pi) and z < np.pi, 'Inapprorpriate z: %f' % z
+    assert y >= (-np.pi) and y < np.pi, 'Inapprorpriate y: %f' % y
+    assert x >= (-np.pi) and x < np.pi, 'Inapprorpriate x: %f' % x
 
     Ms = []
     if z:
-            cosz = math.cos(z)
-            sinz = math.sin(z)
-            Ms.append(np.array(
-                            [[cosz, -sinz, 0],
-                             [sinz, cosz, 0],
-                             [0, 0, 1]]))
+        cosz = math.cos(z)
+        sinz = math.sin(z)
+        Ms.append(np.array(
+            [[cosz, -sinz, 0],
+             [sinz, cosz, 0],
+             [0, 0, 1]]))
     if y:
-            cosy = math.cos(y)
-            siny = math.sin(y)
-            Ms.append(np.array(
-                            [[cosy, 0, siny],
-                             [0, 1, 0],
-                             [-siny, 0, cosy]]))
+        cosy = math.cos(y)
+        siny = math.sin(y)
+        Ms.append(np.array(
+            [[cosy, 0, siny],
+             [0, 1, 0],
+             [-siny, 0, cosy]]))
     if x:
-            cosx = math.cos(x)
-            sinx = math.sin(x)
-            Ms.append(np.array(
-                            [[1, 0, 0],
-                             [0, cosx, -sinx],
-                             [0, sinx, cosx]]))
+        cosx = math.cos(x)
+        sinx = math.sin(x)
+        Ms.append(np.array(
+            [[1, 0, 0],
+             [0, cosx, -sinx],
+             [0, sinx, cosx]]))
     if Ms:
-            return functools.reduce(np.dot, Ms[::-1])
+        return functools.reduce(np.dot, Ms[::-1])
     return np.eye(3)
+
 
 def euler2quat(z=0, y=0, x=0, isRadian=True):
     ''' Return quaternion corresponding to these Euler angles
@@ -337,14 +368,14 @@ def euler2quat(z=0, y=0, x=0, isRadian=True):
          http://en.wikipedia.org/wiki/Quaternions#Hamilton_product - to
          formulae from 2.) to give formula for combined rotations.
     '''
-  
+
     if not isRadian:
-        z = ((np.pi)/180.) * z
-        y = ((np.pi)/180.) * y
-        x = ((np.pi)/180.) * x
-    z = z/2.0
-    y = y/2.0
-    x = x/2.0
+        z = ((np.pi) / 180.) * z
+        y = ((np.pi) / 180.) * y
+        x = ((np.pi) / 180.) * x
+    z = z / 2.0
+    y = y / 2.0
+    x = x / 2.0
     cz = math.cos(z)
     sz = math.sin(z)
     cy = math.cos(y)
@@ -352,33 +383,36 @@ def euler2quat(z=0, y=0, x=0, isRadian=True):
     cx = math.cos(x)
     sx = math.sin(x)
     return np.array([
-                     cx*cy*cz - sx*sy*sz,
-                     cx*sy*sz + cy*cz*sx,
-                     cx*cz*sy - sx*cy*sz,
-                     cx*cy*sz + sx*cz*sy])
+        cx * cy * cz - sx * sy * sz,
+        cx * sy * sz + cy * cz * sx,
+        cx * cz * sy - sx * cy * sz,
+        cx * cy * sz + sx * cz * sy])
+
 
 def pose_vec_to_mat(vec):
     tx = vec[0]
     ty = vec[1]
     tz = vec[2]
-    trans = np.array([tx, ty, tz]).reshape((3,1))
+    trans = np.array([tx, ty, tz]).reshape((3, 1))
     rot = euler2mat(vec[5], vec[4], vec[3])
     Tmat = np.concatenate((rot, trans), axis=1)
-    hfiller = np.array([0, 0, 0, 1]).reshape((1,4))
+    hfiller = np.array([0, 0, 0, 1]).reshape((1, 4))
     Tmat = np.concatenate((Tmat, hfiller), axis=0)
     return Tmat
+
 
 def pose_vec_q_to_mat(vec):
     tx = vec[1]
     ty = vec[2]
     tz = vec[3]
-    trans = np.array([tx, ty, tz]).reshape((3,1))
-    q = [vec[7],vec[4], vec[5], vec[6]]
+    trans = np.array([tx, ty, tz]).reshape((3, 1))
+    q = [vec[7], vec[4], vec[5], vec[6]]
     rot = quat2mat(q)
     Tmat = np.concatenate((rot, trans), axis=1)
-    hfiller = np.array([0, 0, 0, 1]).reshape((1,4))
+    hfiller = np.array([0, 0, 0, 1]).reshape((1, 4))
     Tmat = np.concatenate((Tmat, hfiller), axis=0)
     return Tmat
+
 
 # convert a 4*4 mat to vec with q
 def pose_mat_to_vec_q(pose_mat):
@@ -391,6 +425,7 @@ def pose_mat_to_vec_q(pose_mat):
     # set time as zero for now
     time = 0
     return [time, tx, ty, tz, qx, qy, qz, qw]
+
 
 def dump_pose_seq_TUM(out_file, poses, times):
     # First frame as the origin
@@ -405,3 +440,9 @@ def dump_pose_seq_TUM(out_file, poses, times):
             rot = this_pose[:3, :3]
             qw, qx, qy, qz = rot2quat(rot)
             f.write('%f %f %f %f %f %f %f %f\n' % (times[p], tx, ty, tz, qx, qy, qz, qw))
+
+
+if __name__ == '__main__':
+    gro = r'F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\data\kitti-odom\09\poses.txt'
+    pre = r"F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\working\visual-odometry(opticalFlow_dense)\source\KITTI-09-traj_est.txt"
+    print(compute_ate(gro, pre))
