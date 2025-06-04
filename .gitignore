@@ -6,3 +6,17 @@
 videos/
 *.ply
 /data/
+/notUsefull/DeepMatchVO/checkpoints/depth_model/model-250000.data-00000-of-00001
+/notUsefull/DeepMatchVO/ckpt/model-250000.data-00000-of-00001
+/notUsefull/DeepMatchVO/checkpoints/depth_model/model-250000.index
+/notUsefull/DeepMatchVO/ckpt/model-250000.index
+/notUsefull/DeepMatchVO/checkpoints/depth_model/model-250000.meta
+/notUsefull/DeepMatchVO/ckpt/model-250000.meta
+/notUsefull/DeepMatchVO/checkpoints/depth_model/model-258000.data-00000-of-00001
+/notUsefull/DeepMatchVO/ckpt/model-258000.data-00000-of-00001
+/notUsefull/DeepMatchVO/checkpoints/depth_model/model-258000.index
+/notUsefull/DeepMatchVO/ckpt/model-258000.index
+/notUsefull/DeepMatchVO/checkpoints/depth_model/model-258000.meta
+/notUsefull/DeepMatchVO/ckpt/model-258000.meta
+/NotWorking/VOLDOR/demo/opencv_world4110.dll
+/NotWorking/VOLDOR/demo/ORBvoc.bin
