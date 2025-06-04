@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/.DeepMatchVO_env" />
+      <excludeFolder url="file://$MODULE_DIR$/.voldor_env" />
+      <excludeFolder url="file://$MODULE_DIR$/.DeepMatch_vo_env" />
+    </content>
+    <orderEntry type="jdk" jdkName="Python 3.7 (Visual-odometry-tutorial)" jdkType="Python SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+  <component name="PackageRequirementsSettings">
+    <option name="versionSpecifier" value="Don't specify version" />
+  </component>
+</module>
