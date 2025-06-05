@@ -82,3 +82,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+'''
+python .\kitti_eval\eval_pose.py --gtruth_dir kitti_data/odometry/09.txt --pred_dir output\\full_pose\\09_full.txt
+'''

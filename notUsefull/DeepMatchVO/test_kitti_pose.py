@@ -107,7 +107,7 @@ def main():
     N = len(glob(concat_img_dir + '/*.png')) + 2 * max_src_offset
     # test_frames = ['%.2d %.6d' % (FLAGS.test_seq, n) for n in range(N)]
     valid_frames = []
-    for i in range(1591):
+    for i in range(0, 1592):
         valid_frames.append('%.2d %.6d' % (FLAGS.test_seq, i))
     test_frames = valid_frames
     print("files_name=>", FLAGS.dataset_dir + 'sequences/%.2d/times.txt' % FLAGS.test_seq)
@@ -187,4 +187,6 @@ if __name__ == '__main__':
     main()
 '''
 test_kitti_pose.py --test_seq 09 --dataset_dir F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\dump\DeepMatchVO\data\kitti_raw --output_dir F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\dump\DeepMatchVO\output\09 --ckpt_file F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\dump\DeepMatchVO\checkpoints\depth_model\model-258000 --seq_length 3 --concat_img_dir F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\dump\DeepMatchVO\kitti_data\raw
+
+python kitti_eval/generate_full_pose.py --dataset_dir kitti_data/raw/  --snippet_dir F:/RunningProjects/VisualOdemetry/Visual-odometry-tutorial/notUsefull/DeepMatchVO//output/09  --output_dir F:/RunningProjects/VisualOdemetry/Visual-odometry-tutorial/notUsefull/DeepMatchVO/notUsefull/DeepMatchVO/output/full_pose  --seq_id 9   --seq_length 3
 '''

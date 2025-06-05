@@ -1,4 +1,5 @@
 import argparse
+import os
 import time
 
 import cv2
@@ -94,7 +95,7 @@ if __name__ == "__main__":
     K = dataset_reader.readCameraMatrix()
 
     # Initialize output pose file and trajectory map
-    out_pose_file = f'KITTI-{seq}-traj_est.txt'
+    out_pose_file = f'KITTI-{seq}-traj_est.txt'  # KITTI-09-traj_est.txt
     trajMap = np.zeros((args.len_trajMap, args.len_trajMap, 3), dtype=np.uint8)
 
     # Initialize feature detector and tracker
@@ -110,7 +111,8 @@ if __name__ == "__main__":
 
     processing_times = []
 
-    # Process frames
+    if os.path.exists(out_pose_file):
+        os.remove(out_pose_file)
     for frame_no in tqdm(range(1, min(dataset_reader._numFrames, 10000)), desc="Processing frames", unit="frame"):
         start_time = time.time()
 
@@ -168,13 +170,18 @@ if __name__ == "__main__":
         end_time = time.time()
         timestamp = end_time - start_time
         processing_times.append(timestamp)
-        qw, qx, qy, qz = rot2quat(camera_rot)
-        with open(out_pose_file, 'a') as f:
-            f.write('%f %f %f %f %f %f %f %f\n' % (
-                float(timestamp), float(camera_pos[0]), float(camera_pos[1]), float(camera_pos[2]),
-                float(qx), float(qy), float(qz), float(qw)
-            ))
+        # qw, qx, qy, qz = rot2quat(camera_rot)
+        # with open(out_pose_file, 'a') as f:
+        #     f.write('%f %f %f %f %f %f %f %f\n' % (
+        #         float(timestamp), float(camera_pos[0]), float(camera_pos[1]), float(camera_pos[2]),
+        #         float(qx), float(qy), float(qz), float(qw)
+        #     ))
+        transformation_matrix = np.hstack((camera_rot, camera_pos.reshape(3, 1)))  # shape: (3, 4)
+        pose_line = ' '.join(map(str, transformation_matrix.flatten()))  # row-major flatten
 
+        # Save to KITTI-style pose file
+        with open(out_pose_file, 'a') as f:
+            f.write(f"{pose_line}\n")
         # Plot trajectory
         if len(track_positions) >= 2 and len(kitti_positions) >= 2:
             track_positions_array = np.array(track_positions, dtype=np.float64)
@@ -210,6 +217,8 @@ if __name__ == "__main__":
         # estimated_aligned[:, 0] = 0
         kitti_positions_np = np.asarray(kitti_positions, dtype=np.float32)
         # kitti_positions_np[:, 0] = 0
+        # print('estimated_aligned=>', estimated_aligned[:2])
+        # print('kitti_positions_np=>', kitti_positions_np[:2])
         np.save('estimated_aligned.npy', estimated_aligned)
         np.save('kitti_positions.npy', kitti_positions_np)
         plot_3d_trajectories_interactive(estimated_aligned, kitti_positions)

@@ -1,0 +1,1 @@
+evo_traj kitti "F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\data\kitti-odom\09\poses.txt  KITTI_00_SPTAM.txt" --ref="F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\working\visual-odometry(opticalFlow_dense)\source\KITTI-09-traj_est.txt" -p --plot_mode=xz

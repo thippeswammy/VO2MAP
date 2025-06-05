@@ -1,4 +1,5 @@
 import argparse
+import os
 import time
 
 import cv2
@@ -92,9 +93,10 @@ if __name__ == "__main__":
     dataset_reader = DatasetReaderKITTI(args.data_dir_root + 'kitti-odom/' + seq)
     K = dataset_reader.readCameraMatrix()
 
-    out_pose_file = f'KITTI-{seq}-traj_est.txt'
+    out_pose_file = f'KITTI-{seq}-traj_est_by_vo.txt'
     trajMap = np.zeros((args.len_trajMap, args.len_trajMap, 3), dtype=np.uint8)
-
+    if os.path.exists(out_pose_file):
+        os.remove(out_pose_file)
     orb = cv2.ORB_create(nfeatures=6000)
 
     prev_frame_BGR = dataset_reader.readFrame(0)
@@ -164,12 +166,16 @@ if __name__ == "__main__":
         timestamp = end_time - start_time
         processing_times.append(timestamp)
 
-        qw, qx, qy, qz = rot2quat(camera_rot)
+        # qw, qx, qy, qz = rot2quat(camera_rot)
+        # with open(out_pose_file, 'a') as f:
+        #     f.write('%f %f %f %f %f %f %f %f\n' % (
+        #         float(timestamp), float(camera_pos[0]), float(camera_pos[1]), float(-camera_pos[2]),
+        #         float(qx), float(qy), float(qz), float(qw)
+        #     ))
+        transformation_matrix = np.hstack((camera_rot, camera_pos.reshape(3, 1)))  # shape: (3, 4)
+        pose_line = ' '.join(map(str, transformation_matrix.flatten()))  # row-major flatten
         with open(out_pose_file, 'a') as f:
-            f.write('%f %f %f %f %f %f %f %f\n' % (
-                float(timestamp), float(camera_pos[0]), float(camera_pos[1]), float(-camera_pos[2]),
-                float(qx), float(qy), float(qz), float(qw)
-            ))
+            f.write(f"{pose_line}\n")
 
         if len(track_positions) >= 2 and len(kitti_positions) >= 2:
             drawTrajectory_vo(trajMap, np.array(track_positions), np.array(kitti_positions), frame_no, args.len_trajMap)

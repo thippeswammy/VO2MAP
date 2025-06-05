@@ -1,24 +1,26 @@
 from __future__ import division
-import os, sys
-import math
-import scipy.misc
-import numpy as np
+
 import argparse
+import os
+import sys
 from glob import glob
+
+import numpy as np
+
 from pose_evaluation_utils import mat2euler, quat2mat, pose_vec2mat
 
 CURDIR = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(CURDIR, '.')))
 sys.path.append(os.path.abspath(os.path.join(CURDIR, '..')))
 sys.path.append(os.path.abspath(os.path.join(CURDIR, '...')))
-from common_utils import is_valid_sample
+# from common_utils import is_valid_sample
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dataset_dir", type=str, help="path to kitti odometry dataset")
 parser.add_argument("--snippet_dir", type=str, help="path to segmental pose dataset")
-parser.add_argument("--output_dir",  type=str, help="path to output pose snippets")
-parser.add_argument("--seq_id",      type=int, default=9, help="sequence id to generate groundtruth pose snippets")
-parser.add_argument("--seq_length",  type=int, default=3, help="sequence length of pose snippets")
+parser.add_argument("--output_dir", type=str, help="path to output pose snippets")
+parser.add_argument("--seq_id", type=int, default=9, help="sequence id to generate groundtruth pose snippets")
+parser.add_argument("--seq_length", type=int, default=3, help="sequence length of pose snippets")
 args = parser.parse_args()
 
 
@@ -30,9 +32,9 @@ def decode_pose(one_pose, first_pose):
     pose_inv = pose_vec2mat([tx, ty, tz, rx, ry, rz], True).astype(np.float32)
     pose = np.dot(np.linalg.inv(pose_inv), first_pose)
 
-    rot = pose[:3,:3].transpose().astype(float)
-    trans = -np.dot(rot, pose[:3,3].transpose())
-    Tmat = np.concatenate((rot, trans.reshape(3,1)), axis=1)
+    rot = pose[:3, :3].transpose().astype(float)
+    trans = -np.dot(rot, pose[:3, 3].transpose())
+    Tmat = np.concatenate((rot, trans.reshape(3, 1)), axis=1)
     return Tmat, pose
 
 
@@ -43,9 +45,11 @@ def main():
     with open(args.dataset_dir + 'sequences/%.2d/times.txt' % args.seq_id, 'r') as f:
         times = f.readlines()
     times = np.array([float(s[:-1]) for s in times])
-
-    segment_pose_files = glob(args.snippet_dir+'/*.txt')
+    # print('pppp====>', (args.dataset_dir + 'sequences/%.2d/times.txt' % args.seq_id))
+    # print('args.snippet_dir',args.snippet_dir)
+    segment_pose_files = glob(args.snippet_dir + '/*.txt')
     segment_num = len(segment_pose_files)
+    # print('segment_pose_files==>', segment_pose_files)
     all_poses = []
     first_abs_pose = np.eye(4, dtype=float)
     anchor_poses = []
@@ -61,24 +65,29 @@ def main():
         else:
             first_pose = anchor_poses[file_num]
             # first adjust previous added frames
-            for i in range(1, len(lines)-1):
+            for i in range(1, len(lines) - 1):
                 # TODO(tianwei): motion average currently only works with seq_length=3, this average is just arithmic
                 Tmat, anchor_pose = decode_pose(lines[i], first_pose)
-                all_poses[file_num+i] = (all_poses[file_num+i] + Tmat)/2
-                anchor_poses[file_num+i] = (anchor_poses[file_num+i] + anchor_pose)/2
+                all_poses[file_num + i] = (all_poses[file_num + i] + Tmat) / 2
+                anchor_poses[file_num + i] = (anchor_poses[file_num + i] + anchor_pose) / 2
             Tmat, anchor_pose = decode_pose(lines[-1], first_pose)
             all_poses.append(Tmat)
             anchor_poses.append(anchor_pose)
-            
+
     print(len(all_poses), 'total frames')
+    print(os.path.join(args.output_dir, ('%.2d' % args.seq_id) + '_full.txt'))
     with open(os.path.join(args.output_dir, ('%.2d' % args.seq_id) + '_full.txt'), 'w') as f:
         for pose in all_poses:
-            pose = pose.reshape((12,1))
+            pose = pose.reshape((12, 1))
             pose_str = str(float(pose[0]))
-            for i in range(1,12):
-                pose_str = pose_str+' '+str(float(pose[i]))
-            f.write(pose_str+'\n')
+            for i in range(1, 12):
+                pose_str = pose_str + ' ' + str(float(pose[i]))
+            f.write(pose_str + '\n')
+    print(os.path.join(args.output_dir, ('%.2d' % args.seq_id) + '_full.txt'), 'completed')
 
 
 if __name__ == '__main__':
     main()
+'''
+python kitti_eval/generate_full_pose.py --dataset_dir kitti_data/raw/  --snippet_dir F:/RunningProjects/VisualOdemetry/Visual-odometry-tutorial/notUsefull/DeepMatchVO//output/09  --output_dir DeepMatchVO/output/full_pose  --seq_id 9   --seq_length 3
+'''

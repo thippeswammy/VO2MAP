@@ -1,4 +1,5 @@
 import argparse
+import os
 import time
 from glob import glob
 
@@ -44,7 +45,8 @@ if __name__ == "__main__":
         out_pose_file = './' + 'TUM' + '-' + seq + '-traj_est.txt'
     elif args.dataset_type == 'KITTI':
         out_pose_file = './' + 'KITTI' + '-' + seq + '-traj_est.txt'
-
+    if os.path.exists(out_pose_file):
+        os.remove(out_pose_file)
     # get the image list in the directory
     img_list = glob(img_data_dir + '/*.png')
     img_list.sort()
@@ -120,11 +122,10 @@ if __name__ == "__main__":
         timestamp = end_time - start_time
         processing_times.append(timestamp)
 
+        transformation_matrix = np.hstack((curr_R, curr_t.reshape(3, 1)))  # shape: (3, 4)
+        pose_line = ' '.join(map(str, transformation_matrix.flatten()))  # row-major flatten
         with open(out_pose_file, 'a') as f:
-            f.write('%f %f %f %f %f %f %f %f\n' % (
-                float(timestamp), float(tx), float(ty), float(tz),
-                float(qx), float(qy), float(qz), float(qw)
-            ))
+            f.write(f"{pose_line}\n")
 
         prev_R = curr_R
         prev_t = curr_t
