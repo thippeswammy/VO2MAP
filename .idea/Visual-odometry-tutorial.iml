@@ -6,7 +6,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.voldor_env" />
       <excludeFolder url="file://$MODULE_DIR$/.DeepMatch_vo_env" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.7 (Visual-odometry-tutorial)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">

@@ -1,10 +1,11 @@
 # Copyright (C) Huangying Zhan 2019. All rights reserved.
 
 import copy
-from matplotlib import pyplot as plt
-import numpy as np
 import os
 from glob import glob
+
+import numpy as np
+from matplotlib import pyplot as plt
 
 
 def scale_lse_solver(X, Y):
@@ -16,7 +17,7 @@ def scale_lse_solver(X, Y):
     Returns:
         scale (float): scaling factor
     """
-    scale = np.sum(X * Y)/np.sum(X ** 2)
+    scale = np.sum(X * Y) / np.sum(X ** 2)
     return scale
 
 
@@ -43,7 +44,7 @@ def umeyama_alignment(x, y, with_scale=False):
 
     # variance, eq. 36
     # "transpose" for column subtraction
-    sigma_x = 1.0 / n * (np.linalg.norm(x - mean_x[:, np.newaxis])**2)
+    sigma_x = 1.0 / n * (np.linalg.norm(x - mean_x[:, np.newaxis]) ** 2)
 
     # covariance matrix, eq. 38
     outer_sum = np.zeros((m, m))
@@ -76,6 +77,7 @@ class KittiEvalOdom():
         vo_eval = KittiEvalOdom()
         vo_eval.eval(gt_pose_txt_dir, result_pose_txt_dir)
     """
+
     def __init__(self):
         self.lengths = [100, 200, 300, 400, 500, 600, 700, 800]
         self.num_lengths = len(self.lengths)
@@ -97,11 +99,11 @@ class KittiEvalOdom():
         poses = {}
         for cnt, line in enumerate(s):
             P = np.eye(4)
-            line_split = [float(i) for i in line.split(" ") if i!=""]
+            line_split = [float(i) for i in line.split(" ") if i != ""]
             withIdx = len(line_split) == 13
             for row in range(3):
                 for col in range(4):
-                    P[row, col] = line_split[row*4 + col + withIdx]
+                    P[row, col] = line_split[row * 4 + col + withIdx]
             if withIdx:
                 frame_idx = line_split[0]
             else:
@@ -118,15 +120,15 @@ class KittiEvalOdom():
         """
         dist = [0]
         sort_frame_idx = sorted(poses.keys())
-        for i in range(len(sort_frame_idx)-1):
+        for i in range(len(sort_frame_idx) - 1):
             cur_frame_idx = sort_frame_idx[i]
-            next_frame_idx = sort_frame_idx[i+1]
+            next_frame_idx = sort_frame_idx[i + 1]
             P1 = poses[cur_frame_idx]
             P2 = poses[next_frame_idx]
             dx = P1[0, 3] - P2[0, 3]
             dy = P1[1, 3] - P2[1, 3]
             dz = P1[2, 3] - P2[2, 3]
-            dist.append(dist[i]+np.sqrt(dx**2+dy**2+dz**2))
+            dist.append(dist[i] + np.sqrt(dx ** 2 + dy ** 2 + dz ** 2))
         return dist
 
     def rotation_error(self, pose_error):
@@ -139,7 +141,7 @@ class KittiEvalOdom():
         a = pose_error[0, 0]
         b = pose_error[1, 1]
         c = pose_error[2, 2]
-        d = 0.5*(a+b+c-1.0)
+        d = 0.5 * (a + b + c - 1.0)
         rot_error = np.arccos(max(min(d, 1.0), -1.0))
         return rot_error
 
@@ -153,7 +155,7 @@ class KittiEvalOdom():
         dx = pose_error[0, 3]
         dy = pose_error[1, 3]
         dz = pose_error[2, 3]
-        trans_error = np.sqrt(dx**2+dy**2+dz**2)
+        trans_error = np.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
         return trans_error
 
     def last_frame_from_segment_length(self, dist, first_frame, length):
@@ -192,39 +194,39 @@ class KittiEvalOdom():
             for i in range(self.num_lengths):
                 len_ = self.lengths[i]
                 last_frame = self.last_frame_from_segment_length(
-                                        dist, first_frame, len_
-                                        )
+                    dist, first_frame, len_
+                )
 
                 # Continue if sequence not long enough
                 if last_frame == -1 or \
-                        not(last_frame in poses_result.keys()) or \
-                        not(first_frame in poses_result.keys()):
+                        not (last_frame in poses_result.keys()) or \
+                        not (first_frame in poses_result.keys()):
                     continue
 
                 # compute rotational and translational errors
                 pose_delta_gt = np.dot(
-                                    np.linalg.inv(poses_gt[first_frame]),
-                                    poses_gt[last_frame]
-                                    )
+                    np.linalg.inv(poses_gt[first_frame]),
+                    poses_gt[last_frame]
+                )
                 pose_delta_result = np.dot(
-                                        np.linalg.inv(poses_result[first_frame]),
-                                        poses_result[last_frame]
-                                        )
+                    np.linalg.inv(poses_result[first_frame]),
+                    poses_result[last_frame]
+                )
                 pose_error = np.dot(
-                                np.linalg.inv(pose_delta_result),
-                                pose_delta_gt
-                                )
+                    np.linalg.inv(pose_delta_result),
+                    pose_delta_gt
+                )
 
                 r_err = self.rotation_error(pose_error)
                 t_err = self.translation_error(pose_error)
 
                 # compute speed
                 num_frames = last_frame - first_frame + 1.0
-                speed = len_/(0.1*num_frames)
+                speed = len_ / (0.1 * num_frames)
 
-                err.append([first_frame, r_err/len_, t_err/len_, len_, speed])
+                err.append([first_frame, r_err / len_, t_err / len_, len_, speed])
         return err
-        
+
     def save_sequence_errors(self, err, file_name):
         """Save sequence error
         Args:
@@ -234,7 +236,7 @@ class KittiEvalOdom():
         fp = open(file_name, 'w')
         for i in err:
             line_to_write = " ".join([str(j) for j in i])
-            fp.writelines(line_to_write+"\n")
+            fp.writelines(line_to_write + "\n")
         fp.close()
 
     def compute_overall_err(self, seq_err):
@@ -286,9 +288,9 @@ class KittiEvalOdom():
             for frame_idx in frame_idx_list:
                 # pose = np.linalg.inv(poses_dict[key][frame_idx_list[0]]) @ poses_dict[key][frame_idx]
                 pose = poses_dict[key][frame_idx]
-                pos_xz.append([pose[0, 3],  pose[2, 3]])
+                pos_xz.append([pose[0, 3], pose[2, 3]])
             pos_xz = np.asarray(pos_xz)
-            plt.plot(pos_xz[:, 0],  pos_xz[:, 1], label=key)
+            plt.plot(pos_xz[:, 0], pos_xz[:, 1], label=key)
 
         plt.legend(loc="upper right", prop={'size': fontsize_})
         plt.xticks(fontsize=fontsize_)
@@ -396,7 +398,7 @@ class KittiEvalOdom():
         for i in pred:
             # cur_gt = np.linalg.inv(gt_0) @ gt[i]
             cur_gt = gt[i]
-            gt_xyz = cur_gt[:3, 3] 
+            gt_xyz = cur_gt[:3, 3]
 
             # cur_pred = np.linalg.inv(pred_0) @ pred[i]
             cur_pred = pred[i]
@@ -409,9 +411,9 @@ class KittiEvalOdom():
             # print("pred: ", pred_xyz)
             # input("debug")
             errors.append(np.sqrt(np.sum(align_err ** 2)))
-        ate = np.sqrt(np.mean(np.asarray(errors) ** 2)) 
+        ate = np.sqrt(np.mean(np.asarray(errors) ** 2))
         return ate
-    
+
     def compute_RPE(self, gt, pred):
         """Compute RPE
         Args:
@@ -425,14 +427,14 @@ class KittiEvalOdom():
         rot_errors = []
         for i in list(pred.keys())[:-1]:
             gt1 = gt[i]
-            gt2 = gt[i+1]
+            gt2 = gt[i + 1]
             gt_rel = np.linalg.inv(gt1) @ gt2
 
             pred1 = pred[i]
-            pred2 = pred[i+1]
+            pred2 = pred[i + 1]
             pred_rel = np.linalg.inv(pred1) @ pred2
             rel_err = np.linalg.inv(gt_rel) @ pred_rel
-            
+
             trans_errors.append(self.translation_error(rel_err))
             rot_errors.append(self.rotation_error(rel_err))
         # rpe_trans = np.sqrt(np.mean(np.asarray(trans_errors) ** 2))
@@ -463,7 +465,7 @@ class KittiEvalOdom():
         for i in pred_updated:
             pred_updated[i][:3, 3] *= scale
         return pred_updated
-    
+
     def write_result(self, f, seq, errs):
         """Write result into a txt file
         Args:
@@ -473,19 +475,18 @@ class KittiEvalOdom():
         """
         ave_t_err, ave_r_err, ate, rpe_trans, rpe_rot = errs
         lines = []
-        lines.append("Sequence: \t {} \n".format(seq) )
-        lines.append("Trans. err. (%): \t {:.3f} \n".format(ave_t_err*100))
-        lines.append("Rot. err. (deg/100m): \t {:.3f} \n".format(ave_r_err/np.pi*180*100))
+        lines.append("Sequence: \t {} \n".format(seq))
+        lines.append("Trans. err. (%): \t {:.3f} \n".format(ave_t_err * 100))
+        lines.append("Rot. err. (deg/100m): \t {:.3f} \n".format(ave_r_err / np.pi * 180 * 100))
         lines.append("ATE (m): \t {:.3f} \n".format(ate))
         lines.append("RPE (m): \t {:.3f} \n".format(rpe_trans))
-        lines.append("RPE (deg): \t {:.3f} \n\n".format(rpe_rot * 180 /np.pi))
+        lines.append("RPE (deg): \t {:.3f} \n\n".format(rpe_rot * 180 / np.pi))
         for line in lines:
             f.writelines(line)
 
-
-    def eval(self, gt_dir, result_dir, 
-                alignment=None,
-                seqs=None):
+    def eval(self, gt_dir, result_dir,
+             alignment=None,
+             seqs=None):
         """Evaulate required/available sequences
         Args:
             gt_dir (str): ground truth poses txt files directory
@@ -537,9 +538,9 @@ class KittiEvalOdom():
             self.cur_seq = '{:02}'.format(i)
             file_name = '{:02}.txt'.format(i)
 
-            poses_result = self.load_poses_from_txt(result_dir+"/"+file_name)
+            poses_result = self.load_poses_from_txt(result_dir + "/" + file_name)
             poses_gt = self.load_poses_from_txt(self.gt_dir + "/" + file_name)
-            self.result_file_name = result_dir+file_name
+            self.result_file_name = result_dir + file_name
 
             # Pose alignment to first frame
             idx_0 = sorted(list(poses_result.keys()))[0]
@@ -561,15 +562,15 @@ class KittiEvalOdom():
                 xyz_gt = np.asarray(xyz_gt).transpose(1, 0)
                 xyz_result = np.asarray(xyz_result).transpose(1, 0)
 
-                r, t, scale = umeyama_alignment(xyz_result, xyz_gt, alignment!="6dof")
+                r, t, scale = umeyama_alignment(xyz_result, xyz_gt, alignment != "6dof")
 
                 align_transformation = np.eye(4)
                 align_transformation[:3:, :3] = r
                 align_transformation[:3, 3] = t
-                
+
                 for cnt in poses_result:
                     poses_result[cnt][:3, 3] *= scale
-                    if alignment=="7dof" or alignment=="6dof":
+                    if alignment == "7dof" or alignment == "6dof":
                         poses_result[cnt] = align_transformation @ poses_result[cnt]
 
             # compute sequence errors
@@ -582,8 +583,8 @@ class KittiEvalOdom():
             # compute overall error
             ave_t_err, ave_r_err = self.compute_overall_err(seq_err)
             print("Sequence: " + str(i))
-            print("Translational error (%): ", ave_t_err*100)
-            print("Rotational error (deg/100m): ", ave_r_err/np.pi*180*100)
+            print("Translational error (%): ", ave_t_err * 100)
+            print("Rotational error (deg/100m): ", ave_r_err / np.pi * 180 * 100)
             ave_t_errs.append(ave_t_err)
             ave_r_errs.append(ave_r_err)
 
@@ -597,7 +598,7 @@ class KittiEvalOdom():
             seq_rpe_trans.append(rpe_trans)
             seq_rpe_rot.append(rpe_rot)
             print("RPE (m): ", rpe_trans)
-            print("RPE (deg): ", rpe_rot * 180 /np.pi)
+            print("RPE (deg): ", rpe_rot * 180 / np.pi)
 
             # Plotting
             self.plot_trajectory(poses_gt, poses_result, i)
@@ -605,13 +606,20 @@ class KittiEvalOdom():
 
             # Save result summary
             self.write_result(f, i, [ave_t_err, ave_r_err, ate, rpe_trans, rpe_rot])
-            
-        f.close()    
+
+        f.close()
 
         print("-------------------- For Copying ------------------------------")
         for i in range(len(ave_t_errs)):
-            print("{0:.2f}".format(ave_t_errs[i]*100))
-            print("{0:.2f}".format(ave_r_errs[i]/np.pi*180*100))
+            print("{0:.2f}".format(ave_t_errs[i] * 100))
+            print("{0:.2f}".format(ave_r_errs[i] / np.pi * 180 * 100))
             print("{0:.2f}".format(seq_ate[i]))
             print("{0:.3f}".format(seq_rpe_trans[i]))
             print("{0:.3f}".format(seq_rpe_rot[i] * 180 / np.pi))
+
+
+'''
+python eval_odom.py --result result/example_1 --align 7dof --seqs 9
+
+python KittiEvalOdom.py --result results --seq 9 --method_files tseting/v1.txt tseting/v2.txt --align scale
+'''

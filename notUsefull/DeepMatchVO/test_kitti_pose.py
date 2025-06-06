@@ -188,5 +188,5 @@ if __name__ == '__main__':
 '''
 test_kitti_pose.py --test_seq 09 --dataset_dir F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\dump\DeepMatchVO\data\kitti_raw --output_dir F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\dump\DeepMatchVO\output\09 --ckpt_file F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\dump\DeepMatchVO\checkpoints\depth_model\model-258000 --seq_length 3 --concat_img_dir F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\dump\DeepMatchVO\kitti_data\raw
 
-python kitti_eval/generate_full_pose.py --dataset_dir kitti_data/raw/  --snippet_dir F:/RunningProjects/VisualOdemetry/Visual-odometry-tutorial/notUsefull/DeepMatchVO//output/09  --output_dir F:/RunningProjects/VisualOdemetry/Visual-odometry-tutorial/notUsefull/DeepMatchVO/notUsefull/DeepMatchVO/output/full_pose  --seq_id 9   --seq_length 3
+python kitti_eval/generate_full_pose.py --dataset_dir kitti_data/raw/  --snippet_dir F:/RunningProjects/VisualOdemetry/Visual-odometry-tutorial/notUsefull/DeepMatchVO//output/09  --output_dir F:/RunningProjects/VisualOdemetry/Visual-odometry-tutorial/notUsefull/DeepMatchVO/output/full_pose  --seq_id 9   --seq_length 3
 '''

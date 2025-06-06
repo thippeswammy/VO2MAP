@@ -30,14 +30,19 @@ def read_pose_file(filepath):
 
 
 def main():
-    pred_files = sorted(glob(args.pred_dir + '/*.txt'))
+    # pred_files = sorted(glob(args.pred_dir + '/*.txt'))
+    pred_files = sorted(
+        glob(r'F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\notUsefull\DeepMatchVO\output\09' + '/*.txt'))
     all_pred = []
     all_gt = []
     ate_all = []
 
     for pred_file in pred_files:
         fname = os.path.basename(pred_file)
-        gt_file = os.path.join(args.gtruth_dir, fname)
+        # gt_file = os.path.join(args.gtruth_dir, fname)
+        gt_file = os.path.join(
+            r'F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\notUsefull\DeepMatchVO\kitti_eval\pose_data\ground_truth\seq3\09',
+            fname)
         print('gt_file=>')
         if not os.path.exists(gt_file):
             print("Missing ground-truth for:", fname)
