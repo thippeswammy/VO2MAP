@@ -22,16 +22,19 @@ eval_tool = KittiEvalOdom()
 gt_dir = "dataset/kitti_odom/gt_poses/"
 result_dir = args.result
 
-continue_flag = input("Evaluate result in {}? [y/n]".format(result_dir))
-if continue_flag == "y":
-    eval_tool.eval(
-        gt_dir,
-        result_dir,
-        alignment=args.align,
-        seqs=args.seqs,
-    )
-else:
-    print("Double check the path!")
+# continue_flag = input("Evaluate result in {}? [y/n]".format(result_dir))
+# if continue_flag == "y":
+eval_tool.eval(
+    gt_dir,
+    result_dir,
+    alignment=args.align,
+    seqs=args.seqs,
+)
+# else:
+#     print("Double check the path!")
+
+# python eval_odom.py --result result/example_6 --align 7dof --seqs 9
+
 '''
 ------------------------------------------------------------
                         example_

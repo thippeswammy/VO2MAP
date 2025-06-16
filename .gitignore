@@ -6,6 +6,7 @@
 videos/
 *.ply
 /data/
+/notUsefull/
 /notUsefull/DeepMatchVO/checkpoints/depth_model/model-250000.data-00000-of-00001
 /notUsefull/DeepMatchVO/ckpt/model-250000.data-00000-of-00001
 /notUsefull/DeepMatchVO/checkpoints/depth_model/model-250000.index

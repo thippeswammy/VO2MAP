@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+
 class FeatureTracker:
     """
     Finds indices of bad features (with status=0 or position outside the frame).
@@ -12,7 +13,8 @@ class FeatureTracker:
     
     Returns:
         Vector containing indices that should be filtered out.
-    """        
+    """
+
     def calcWrongFeatureIndices(self, features, frame, status):
         status_ = status.copy()
         for idx, pt in enumerate(features):
@@ -33,6 +35,7 @@ class FeatureTracker:
     Returns:
         Features from previous and current frame (tracked), both filtered.
     """
+
     def trackFeatures(self, prevFrame, currFrame, prevPts, removeOutliers=False):
         # Feature tracking on the 2nd frame
         currPts, status, _ = cv2.calcOpticalFlowPyrLK(prevFrame, currFrame, prevPts, None)
@@ -42,5 +45,5 @@ class FeatureTracker:
             wrongIndices = self.calcWrongFeatureIndices(currPts, currFrame, status)
             prevPts = np.delete(prevPts, wrongIndices, axis=0)
             currPts = np.delete(currPts, wrongIndices, axis=0)
-            
+
         return prevPts, currPts
