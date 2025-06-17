@@ -1,0 +1,25 @@
+https://github.com/raulmur/ORB_SLAM2
+
+https://v-slammers.github.io/tools_and_tips/ORB-SLAM2-Install/
+Pangolin V0.5. ->  ORB-SLAM2
+https://github.com/stevenlovegrove/Pangolin
+
+https://linuxize.com/post/how-to-install-opencv-on-ubuntu-18-04/
+
+https://medium.com/@smilesajid14/e-unable-to-locate-package-catch2-794c1f1687aa
+
+https://github.com/raulmur/ORB_SLAM2/issues/718
+
+sudo apt remove libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+
+sudo add-apt-repository ppa:savoury1/ffmpeg4
+sudo apt update
+sudo apt install ffmpeg libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+
+cd ~/ws_slam/ORB_SLAM2/Thirdparty/Pangolin
+rm -rf build
+mkdir build && cd build
+cmake ..  # (Don't disable FFmpeg this time)
+make -j$(nproc)
+
+./Examples/Monocular/mono_kitti Vocabulary/ORBvoc.txt Examples/Monocular/KITTIX.yaml ./dataset/sequences/09
