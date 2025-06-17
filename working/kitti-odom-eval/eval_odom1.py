@@ -19,7 +19,7 @@ print("Detected result folders:", dir_list)
 results_table = []
 headers = ["Result Folder", "Alignment", "Trans. err. (%)", "Rot. err. (deg/100m)", "ATE (m)", "RPE (m)", "RPE (deg)"]
 
-for file in dir_list:
+for file in ['././vo_data/_6_orb_slam2_mono']:
     for align in ['scale', 'scale_7dof', '7dof', '6dof']:
         parser = argparse.ArgumentParser(description='KITTI evaluation')
         parser.add_argument('--result', type=str, default=file)

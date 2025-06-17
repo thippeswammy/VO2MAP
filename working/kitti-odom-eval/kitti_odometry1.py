@@ -509,10 +509,10 @@ if __name__ == "__main__":
     df = pd.DataFrame(results_table, columns=headers)
 
     # Save to Excel
-    excel_filename = "vo_evaluation_results.xlsx"
+    excel_filename = "./plots/vo_evaluation_results.xlsx"
     df.to_excel(excel_filename, index=False)
 
-    print(f"\n✅ Results saved to Excel: {excel_filename}")
+    print(f"\nResults saved to Excel: {excel_filename}")
 
     methods = sorted(set(row[0] for row in results_table))
     alignments = ['scale', 'scale_7dof', '7dof', '6dof']
