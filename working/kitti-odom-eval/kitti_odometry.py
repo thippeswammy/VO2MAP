@@ -475,14 +475,21 @@ class KittiEvalOdom():
         """
         ave_t_err, ave_r_err, ate, rpe_trans, rpe_rot = errs
         lines = []
+        list_ = []
         lines.append("Sequence: \t {} \n".format(seq))
+        list_.append(ave_t_err * 100)
         lines.append("Trans. err. (%): \t {:.3f} \n".format(ave_t_err * 100))
+        list_.append(ave_r_err / np.pi * 180 * 100)
         lines.append("Rot. err. (deg/100m): \t {:.3f} \n".format(ave_r_err / np.pi * 180 * 100))
+        list_.append(ate)
         lines.append("ATE (m): \t {:.3f} \n".format(ate))
+        list_.append(rpe_trans)
         lines.append("RPE (m): \t {:.3f} \n".format(rpe_trans))
+        list_.append(rpe_rot * 180 / np.pi)
         lines.append("RPE (deg): \t {:.3f} \n\n".format(rpe_rot * 180 / np.pi))
         for line in lines:
             f.writelines(line)
+        return list_
 
     def eval(self, gt_dir, result_dir,
              alignment=None,
@@ -605,7 +612,7 @@ class KittiEvalOdom():
             self.plot_error(avg_segment_errs, i)
 
             # Save result summary
-            self.write_result(f, i, [ave_t_err, ave_r_err, ate, rpe_trans, rpe_rot])
+            list_ = self.write_result(f, i, [ave_t_err, ave_r_err, ate, rpe_trans, rpe_rot])
 
         f.close()
 
@@ -616,6 +623,7 @@ class KittiEvalOdom():
             print("{0:.2f}".format(seq_ate[i]))
             print("{0:.3f}".format(seq_rpe_trans[i]))
             print("{0:.3f}".format(seq_rpe_rot[i] * 180 / np.pi))
+        return list_
 
 
 '''

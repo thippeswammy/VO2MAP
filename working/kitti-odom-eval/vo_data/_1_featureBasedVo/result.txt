@@ -1,0 +1,10 @@
+Sequence: 	 9 
+Trans. err. (%): 	 10.664 
+Rot. err. (deg/100m): 	 1.655 
+ATE (m): 	 37.671 
+RPE (m): 	 0.233 
+RPE (deg): 	 0.178 
+GT Distance (m): 	 1705.051 
+Predicted Distance (m): 	 1590.000 
+Final Drift (m): 	 104.983 
+
