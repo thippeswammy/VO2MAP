@@ -62,5 +62,5 @@ Viewer.CameraLineWidth: 3
 Viewer.ViewpointX: 0
 Viewer.ViewpointY: -100
 Viewer.ViewpointZ: -0.1
-Viewer.ViewpointF: 2000
+Viewer.ViewpointF: 500
 
