@@ -21,4 +21,6 @@ Vocabulary/ORBvoc.txt
 build/
 *~
 lib/
+dataset/sequences
+Thirdparty/
 
