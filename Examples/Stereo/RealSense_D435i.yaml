@@ -5,7 +5,7 @@
 #--------------------------------------------------------------------------------------------
 File.version: "1.0"
 
-Camera.type: "Rectified"
+Camera.type: "PinHole"
 
 # Rectified Camera calibration and distortion parameters (OpenCV)
 Camera1.fx: 382.613
@@ -13,11 +13,27 @@ Camera1.fy: 382.613
 Camera1.cx: 320.183
 Camera1.cy: 236.455
 
+Camera2.fx: 382.613
+Camera2.fy: 382.613
+Camera2.cx: 320.183
+Camera2.cy: 236.455
+
 Stereo.b: 0.0499585
 
+Camera1.k1: 0.0
+Camera1.k2: 0.0
+Camera1.p1: 0.0
+Camera1.p2: 0.0
+
+Camera2.k1: 0.0
+Camera2.k2: 0.0
+Camera2.p1: 0.0
+Camera2.p2: 0.0
 # Camera resolution
 Camera.width: 640
 Camera.height: 480
+Camera.newWidth: 640
+Camera.newHeight: 480
 
 # Camera frames per second 
 Camera.fps: 30
@@ -60,3 +76,12 @@ Viewer.ViewpointX: 0.0
 Viewer.ViewpointY: -0.7
 Viewer.ViewpointZ: -3.5
 Viewer.ViewpointF: 500.0
+Viewer.imageViewScale: 2.0
+Stereo.T_c1_c2: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: f
+   data: [1, 0, 0, -0.53716,
+          0, 1, 0, 0,
+          0, 0, 1, 0,
+          0, 0, 0, 1]
