@@ -1172,6 +1172,9 @@ bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
     {
         float fx = mpCamera->getParameter(0);
         cv::FileNode node = fSettings["ThDepth"];
+
+        cout << endl << "Depth Threshold (Close/Far Points): " << node.isReal() << endl;
+        cout << endl << "Depth Threshold (Close/Far Points): " << node.empty() << endl;
         if(!node.empty()  && node.isReal())
         {
             mThDepth = node.real();
