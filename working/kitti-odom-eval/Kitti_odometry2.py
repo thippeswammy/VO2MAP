@@ -48,7 +48,8 @@ class KittiEvalOdom:
         self.lengths = [100, 200, 300, 400, 500, 600, 700, 800]
         self.step_size = 10
 
-    def plot_3d_trajectories_interactive(self, estimated, groundtruth, title="3D Trajectory Comparison",
+    @staticmethod
+    def plot_3d_trajectories_interactive(estimated, groundtruth, title="3D Trajectory Comparison",
                                          file_name="trajectory_3d_interactive.html"):
         """Plot interactive 3D trajectories using Plotly."""
         estimated = np.asarray(estimated, dtype=np.float32)
@@ -88,7 +89,8 @@ class KittiEvalOdom:
         fig.write_html(file_name)
         # fig.show()  # Comment out to avoid opening browser during batch processing
 
-    def load_poses_from_txt(self, file_name):
+    @staticmethod
+    def load_poses_from_txt(file_name):
         """Load poses from KITTI-format txt file."""
         try:
             with open(file_name, 'r') as f:
@@ -115,7 +117,8 @@ class KittiEvalOdom:
         except Exception as e:
             raise Exception(f"Failed to load poses from {file_name}: {e}")
 
-    def trajectory_distances(self, poses):
+    @staticmethod
+    def trajectory_distances(poses):
         """Compute distances w.r.t. frame 0."""
         dist = [0]
         keys = sorted(poses.keys())
@@ -128,18 +131,21 @@ class KittiEvalOdom:
             dist.append(dist[i] + np.sqrt(dx ** 2 + dy ** 2 + dz ** 2))
         return dist
 
-    def rotation_error(self, pose_error):
+    @staticmethod
+    def rotation_error(pose_error):
         """Compute rotation error in radians."""
         a, b, c = pose_error[0, 0], pose_error[1, 1], pose_error[2, 2]
         d = 0.5 * (a + b + c - 1.0)
         return np.arccos(max(min(d, 1.0), -1.0))
 
-    def translation_error(self, pose_error):
+    @staticmethod
+    def translation_error(pose_error):
         """Compute translation error in meters."""
         dx, dy, dz = pose_error[0, 3], pose_error[1, 3], pose_error[2, 3]
         return np.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
 
-    def last_frame_from_segment_length(self, dist, first_frame, length):
+    @staticmethod
+    def last_frame_from_segment_length(dist, first_frame, length):
         """Find frame index for segment of specified length."""
         for i in range(first_frame, len(dist)):
             if dist[i] > (dist[first_frame] + length):
@@ -163,7 +169,8 @@ class KittiEvalOdom:
                 err.append([first_frame, r_err / len_, t_err / len_, len_])
         return err
 
-    def compute_overall_err(self, seq_err):
+    @staticmethod
+    def compute_overall_err(seq_err):
         """Compute average t_rel and r_rel."""
         if not seq_err:
             return 0, 0
@@ -189,7 +196,8 @@ class KittiEvalOdom:
                 avg_segment_errs[len_] = []
         return avg_segment_errs
 
-    def compute_ATE(self, gt, pred):
+    @staticmethod
+    def compute_ATE(gt, pred):
         """Compute Absolute Trajectory Error (RMSE)."""
         errors = []
         for i in pred:
@@ -214,7 +222,8 @@ class KittiEvalOdom:
         """Compute Translational RMSE (same as ATE for consistency)."""
         return self.compute_ATE(gt, pred)
 
-    def scale_optimization(self, gt, pred):
+    @staticmethod
+    def scale_optimization(gt, pred):
         """Optimize scaling factor for predicted poses."""
         pred_updated = copy.deepcopy(pred)
         xyz_pred = np.array([pred[i][:3, 3] for i in pred])
@@ -224,7 +233,8 @@ class KittiEvalOdom:
             pred_updated[i][:3, 3] *= scale
         return pred_updated
 
-    def compute_total_distance(self, poses):
+    @staticmethod
+    def compute_total_distance(poses):
         """Compute total trajectory distance."""
         keys = sorted(poses.keys())
         dist = 0.0
@@ -232,12 +242,14 @@ class KittiEvalOdom:
             dist += np.linalg.norm(poses[keys[i]][:3, 3] - poses[keys[i - 1]][:3, 3])
         return dist
 
-    def compute_drift(self, gt, pred):
+    @staticmethod
+    def compute_drift(gt, pred):
         """Compute final drift (Euclidean distance at last frame)."""
         keys = sorted(gt.keys())
         return np.linalg.norm(gt[keys[-1]][:3, 3] - pred[keys[-1]][:3, 3])
 
-    def write_result(self, f, seq, errs):
+    @staticmethod
+    def write_result(f, seq, errs):
         """Write evaluation metrics to file."""
         t_rel, r_rel, ate, rpe_trans, rpe_rot, trans_rmse, gt_dist, pred_dist, drift = errs
         lines = [
@@ -324,7 +336,8 @@ class KittiEvalOdom:
                     continue
         return []
 
-    def save_sequence_errors(self, err, file_name):
+    @staticmethod
+    def save_sequence_errors(err, file_name):
         """Save sequence errors to file."""
         with open(file_name, 'w') as f:
             for item in err:
@@ -378,8 +391,8 @@ class KittiEvalOdom:
         plt.close()
 
 
-def get_folders_in_dir(dir_path='./vo_data'):
-    """Get list of folders in directory."""
+def get_folders_in_dir(dir_path='./result'):
+    """Get a list of folders in directory."""
     return [os.path.join(dir_path, item) for item in os.listdir(dir_path) if
             os.path.isdir(os.path.join(dir_path, item))]
 
@@ -390,13 +403,15 @@ if __name__ == "__main__":
     headers = ["Method", "Alignment", "t_rel (%)", "r_rel (deg/100m)", "ATE (m)", "Trans RMSE (m)", "RPE trans (m)",
                "RPE rot (deg)", "GT Dist (m)", "Pred Dist (m)", "Drift (m)"]
     results_table = []
-    alignments = ['scale', 'scale_7dof', '7dof', '6dof']
+    alignments = ['scale', 'scale_7dof', '7dof', '6dof', 'Direct']
+    seq_ = 00
     for folder in dir_list:
         for align in alignments:
+            # for seq_ in sequence:
             parser = argparse.ArgumentParser(description='KITTI VO evaluation')
             parser.add_argument('--result', type=str, default=folder)
             parser.add_argument('--align', type=str, default=align)
-            parser.add_argument('--seqs', nargs="+", type=int, default=[9])
+            parser.add_argument('--seqs', nargs="+", type=int, default=[seq_])
             args = parser.parse_args([])
             eval_tool = KittiEvalOdom()
             gt_dir = "dataset/kitti_odom/gt_poses/"
@@ -406,7 +421,7 @@ if __name__ == "__main__":
                     args.result,
                     alignment=args.align,
                     seqs=args.seqs,
-                    file_name_plot=f"{align}_seq_09_3D_Plot.png"
+                    file_name_plot=f"{align}_seq_{seq_:0.2f}_3D_Plot.png"
                 )
                 if metrics:
                     results_table.append([
