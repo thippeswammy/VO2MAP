@@ -48,9 +48,9 @@ class KittiEvalOdom:
         self.lengths = [100, 200, 300, 400, 500, 600, 700, 800]
         self.step_size = 10
 
-    @staticmethod
-    def plot_3d_trajectories_interactive(estimated, groundtruth, title="3D Trajectory Comparison",
+    def plot_3d_trajectories_interactive(self, estimated, groundtruth, title="3D Trajectory Comparison",
                                          file_name="trajectory_3d_interactive.html"):
+        """Plot interactive 3D trajectories using Plotly."""
         estimated = np.asarray(estimated, dtype=np.float32)
         groundtruth = np.asarray(groundtruth, dtype=np.float32)
 
@@ -86,7 +86,7 @@ class KittiEvalOdom:
         )
 
         fig.write_html(file_name)
-        fig.show()
+        # fig.show()  # Comment out to avoid opening browser during batch processing
 
     def load_poses_from_txt(self, file_name):
         """Load poses from KITTI-format txt file."""
@@ -172,7 +172,7 @@ class KittiEvalOdom:
         return t_err, r_err
 
     def compute_segment_error(self, seq_errs):
-        """Calculate average errors for different segment"""
+        """Calculate average errors for different segments."""
         segment_errs = {len_: [] for len_ in self.lengths}
         avg_segment_errs = {}
         for err in seq_errs:
@@ -212,7 +212,7 @@ class KittiEvalOdom:
 
     def compute_translational_rmse(self, gt, pred):
         """Compute Translational RMSE (same as ATE for consistency)."""
-        return self.compute_ATE(gt, pred)  # ATE is the RMSE of translation errors
+        return self.compute_ATE(gt, pred)
 
     def scale_optimization(self, gt, pred):
         """Optimize scaling factor for predicted poses."""
@@ -256,7 +256,7 @@ class KittiEvalOdom:
         return [t_rel * 100, r_rel / np.pi * 180 * 100, ate, rpe_trans, rpe_rot * 180 / np.pi, trans_rmse, gt_dist,
                 pred_dist, drift]
 
-    def eval(self, gt_dir, result_dir, alignment=None, seqs=None, file_name=''):
+    def eval(self, gt_dir, result_dir, alignment=None, seqs=None, file_name_plot=''):
         """Evaluate sequences and return metrics."""
         seq_list = [f"{i:02}" for i in range(11)]
         self.gt_dir = gt_dir
@@ -308,7 +308,10 @@ class KittiEvalOdom:
                     gt_dist = self.compute_total_distance(poses_gt)
                     pred_dist = self.compute_total_distance(poses_result)
                     drift = self.compute_drift(poses_gt, poses_result)
-                    self.plot_trajectory(poses_gt, poses_result, seq)
+                    # Extract 3D coordinates for plotting
+                    pos_result = np.array([poses_result[k][:3, 3] for k in sorted(poses_result.keys())])
+                    pos_gt = np.array([poses_gt[k][:3, 3] for k in sorted(poses_gt.keys()) if k in poses_result])
+                    self.plot_trajectory(poses_gt, poses_result, seq, pos_gt, pos_result, file_name_plot)
                     self.plot_error(self.compute_segment_error(seq_err), seq)
                     metrics = self.write_result(f, seq,
                                                 [t_rel, r_rel, ate, rpe_trans, rpe_rot, trans_rmse, gt_dist, pred_dist,
@@ -327,8 +330,9 @@ class KittiEvalOdom:
             for item in err:
                 f.write(" ".join(map(str, item)) + "\n")
 
-    def plot_trajectory(self, poses_gt, poses_result, seq):
+    def plot_trajectory(self, poses_gt, poses_result, seq, pos_gt, pos_result, file_name_plot):
         """Plot ground truth and predicted trajectories."""
+        # 2D Plot (x, z)
         fig = plt.figure(figsize=(10, 10))
         ax = plt.gca()
         ax.set_aspect('equal')
@@ -338,11 +342,16 @@ class KittiEvalOdom:
         plt.legend(loc="upper right", prop={'size': 20})
         plt.xlabel('x (m)', fontsize=20)
         plt.ylabel('z (m)', fontsize=20)
-        plt.savefig(os.path.join(self.plot_path_dir, f"sequence_{seq:02}.png"), bbox_inches='tight', pad_inches=0)
+        plt.savefig(os.path.join(self.plot_path_dir, file_name_plot), bbox_inches='tight', pad_inches=0)
         plt.close()
 
-        self.plot_3d_trajectories_interactive(poses_gt, poses_result,
-                                              os.path.join(self.plot_path_dir, f"sequence_{seq:02}.html"))
+        # 3D Interactive Plot
+        self.plot_3d_trajectories_interactive(
+            pos_result,
+            pos_gt,
+            title=f"3D Trajectory Comparison for Sequence {seq:02}",
+            file_name=os.path.join(self.plot_path_dir, file_name_plot.split('.')[0] + ".html")
+        )
 
     def plot_error(self, avg_segment_errs, seq):
         """Plot translation and rotation errors per segment length."""
@@ -382,7 +391,6 @@ if __name__ == "__main__":
                "RPE rot (deg)", "GT Dist (m)", "Pred Dist (m)", "Drift (m)"]
     results_table = []
     alignments = ['scale', 'scale_7dof', '7dof', '6dof']
-    # alignments = ['None']
     for folder in dir_list:
         for align in alignments:
             parser = argparse.ArgumentParser(description='KITTI VO evaluation')
@@ -393,8 +401,13 @@ if __name__ == "__main__":
             eval_tool = KittiEvalOdom()
             gt_dir = "dataset/kitti_odom/gt_poses/"
             try:
-                metrics = eval_tool.eval(gt_dir, args.result, alignment=args.align, seqs=args.seqs,
-                                         file_name=f"{args.result}\\{args.align}_09_3D_Plot.html")
+                metrics = eval_tool.eval(
+                    gt_dir,
+                    args.result,
+                    alignment=args.align,
+                    seqs=args.seqs,
+                    file_name_plot=f"{align}_seq_09_3D_Plot.png"
+                )
                 if metrics:
                     results_table.append([
                         os.path.basename(folder),
