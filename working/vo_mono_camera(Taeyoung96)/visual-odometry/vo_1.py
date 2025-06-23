@@ -89,9 +89,9 @@ if __name__ == "__main__":
         if kitti_pos.shape != (3,):
             print(f"[ERROR] kitti_pos has incorrect shape: {kitti_pos.shape}")
             continue
-        if kitti_scale <= 0.1:
-            print(f"[WARNING] Skipping frame {i}: kitti_scale ({kitti_scale}) <= 0.1")
-            continue
+        # if kitti_scale <= 0.1:
+        #     print(f"[WARNING] Skipping frame {i}: kitti_scale ({kitti_scale}) <= 0.1")
+        #     continue
 
         # Compute camera motion
         R = R.transpose()

@@ -5,6 +5,7 @@
 *.pyc
 videos/
 *.ply
+/.venv
 /data/
 /notUsefull/
 /notUsefull/DeepMatchVO/checkpoints/depth_model/model-250000.data-00000-of-00001

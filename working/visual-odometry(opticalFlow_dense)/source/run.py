@@ -138,9 +138,9 @@ if __name__ == "__main__":
 
         # Read ground truth and scale
         kitti_pos, kitti_scale = dataset_reader.readGroundtuthPosition(frame_no)
-        if kitti_scale <= 0.1:
-            print(f"[WARNING] Skipping frame {frame_no}: kitti_scale ({kitti_scale}) <= 0.1")
-            continue
+        # if kitti_scale <= 0.1:
+        #     print(f"[WARNING] Skipping frame {frame_no}: kitti_scale ({kitti_scale}) <= 0.1")
+        #     continue
 
         # Update pose
         T = np.asarray(T).flatten()

@@ -1,11 +1,11 @@
 Sequence: 	 9
 t_rel (%): 	 69.672
 r_rel (deg/100m): 	 0.606
-ATE (m): 	 208.092
-Translational RMSE (m): 	 208.092
+ATE (m): 	 345.940
+Translational RMSE (m): 	 345.940
 RPE trans (m): 	 0.987
 RPE rot (deg): 	 0.183
 GT Distance (m): 	 1705.051
 Pred Distance (m): 	 135.718
-Drift (m): 	 248.163
+Drift (m): 	 28.349
 

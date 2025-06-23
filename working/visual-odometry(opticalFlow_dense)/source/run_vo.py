@@ -156,9 +156,9 @@ if __name__ == "__main__":
         camera_pos = camera_pos + (camera_rot @ T).flatten()
 
         kitti_pos, kitti_scale = dataset_reader.readGroundtuthPosition(frame_no)
-        if kitti_scale <= 0.1:
-            print(f"[WARNING] Skipping frame {frame_no}: scale too small ({kitti_scale})")
-            continue
+        # if kitti_scale <= 0.1:
+        #     print(f"[WARNING] Skipping frame {frame_no}: scale too small ({kitti_scale})")
+        #     continue
         kitti_positions.append(np.asarray(kitti_pos).flatten())
         track_positions.append(np.asarray(camera_pos).flatten())
 

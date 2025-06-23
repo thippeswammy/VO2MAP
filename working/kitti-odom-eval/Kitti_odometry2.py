@@ -398,13 +398,13 @@ def get_folders_in_dir(dir_path='./result'):
 
 
 if __name__ == "__main__":
-    dir_list = get_folders_in_dir()
+    dir_list = get_folders_in_dir('./vo_data')
     print("Detected result folders:", dir_list)
     headers = ["Method", "Alignment", "t_rel (%)", "r_rel (deg/100m)", "ATE (m)", "Trans RMSE (m)", "RPE trans (m)",
                "RPE rot (deg)", "GT Dist (m)", "Pred Dist (m)", "Drift (m)"]
     results_table = []
     alignments = ['scale', 'scale_7dof', '7dof', '6dof', 'Direct']
-    seq_ = 00
+    seq_ = 9
     for folder in dir_list:
         for align in alignments:
             # for seq_ in sequence:
