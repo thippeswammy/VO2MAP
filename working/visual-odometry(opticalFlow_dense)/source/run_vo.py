@@ -1,9 +1,7 @@
 import argparse
-import json
 import os
 import subprocess
 import time
-from pprint import pprint
 
 import cv2
 import matplotlib.pyplot as plt
@@ -207,28 +205,17 @@ if __name__ == "__main__":
     avg_processing_time = np.mean(processing_times)
     avg_fps = 1.0 / avg_processing_time if avg_processing_time > 0 else 0
     End_time = time.time_ns()
-    time_taken = (End_time - Start_time) / 1e9
-    fps = 20 / time_taken
-    print(f"Total Time = {time_taken} ns")
-    print(f"Frames per Second = {fps:.2f} fps")
+    total_time = (End_time - Start_time) / 1e9
+    num_frames = dataset_reader._numFrames
+    fps = num_frames / total_time if total_time > 0 else 0
+    print(f"Total Time = {total_time:.2f} s")
+    print(f"Frames processed = {num_frames}")
+    # print(f"Average Processing Time per Frame = {avg_processing_time:.4f} s")
+    print(f"FPS = {avg_fps:.2f} fps")
+    # print(f"Actual FPS (by total time) = {fps:.2f} fps")
+    # print(f"Average FPS (by processing time) = {fps:.2f} fps")
     # Read and display monitoring results
     # Signal monitoring process to stop
-    with open(stop_file, 'w') as f:
-        f.write("stop")
-
-    monitor_process.wait()
-    if os.path.exists(output_file):
-        with open(output_file, 'r') as f:
-            avg_result = json.load(f)
-        print("\n[AVERAGE USAGE]")
-        pprint(avg_result)
-        os.remove(output_file)  # Clean up
-    else:
-        print("No monitoring results found.")
-
-    # Clean up stop file
-    if os.path.exists(stop_file):
-        os.remove(stop_file)
 
     if len(kitti_positions) == len(track_positions):
         estimated_aligned = np.copy(track_positions)
@@ -236,9 +223,9 @@ if __name__ == "__main__":
         kitti_positions_np = np.asarray(kitti_positions, dtype=np.float32)
         plot_3d_trajectories(estimated_aligned, kitti_positions)
         ate = compute_absolute_trajectory_error(estimated_aligned, kitti_positions)
-        print(f"[RESULT] Absolute Trajectory Error (ATE): {ate:.4f} meters")
+        print(f"\n\n[RESULT] Absolute Trajectory Error (ATE): {ate:.4f} meters")
     else:
-        print(f"[ERROR] Length mismatch between trajectory and groundtruth")
+        print(f"\n\n[ERROR] Length mismatch between trajectory and groundtruth")
 
     cv2.imwrite(f'KITTI-{seq}_trajMap.png', cv2.flip(trajMap, 0))
     cv2.destroyAllWindows()
