@@ -73,7 +73,7 @@ def compute_absolute_trajectory_error(estimated, groundtruth):
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir_root", type=str, default="../../../data/", help="dataset root")
 parser.add_argument("--dataset_type", type=str, default='KITTI', choices=['KITTI', 'TUM'], help="dataset type")
-parser.add_argument("--len_trajMap", type=int, default=20000, help="size of the trajectory map")
+parser.add_argument("--len_trajMap", type=int, default=2000, help="size of the trajectory map")
 args = parser.parse_args()
 
 if __name__ == "__main__":
@@ -107,6 +107,8 @@ if __name__ == "__main__":
     kitti_positions, track_positions = [], []
     camera_rot = np.eye(3)
     camera_pos, _ = dataset_reader.readGroundtuthPosition(0)
+
+    processing_times = []
 
     if os.path.exists(out_pose_file):
         os.remove(out_pose_file)
@@ -143,6 +145,9 @@ if __name__ == "__main__":
         kitti_positions.append(kitti_pos)
         track_positions.append(camera_pos)
 
+        end_time = time.time()
+        timestamp = end_time - start_time
+        processing_times.append(timestamp)
         transformation_matrix = np.hstack((camera_rot, camera_pos.reshape(3, 1)))
         pose_line = ' '.join(map(str, transformation_matrix.flatten()))
 
@@ -161,22 +166,24 @@ if __name__ == "__main__":
 
         prev_points, prev_frame_BGR = curr_points, curr_frame_BGR
 
+    avg_processing_time = np.mean(processing_times)
+    avg_fps = 1.0 / avg_processing_time if avg_processing_time > 0 else 0
     End_time = time.time_ns()
     total_time = (End_time - Start_time) / 1e9
     num_frames = dataset_reader._numFrames
     fps = num_frames / total_time if total_time > 0 else 0
-
     print(f"Total Time = {total_time:.2f} s")
     print(f"Frames processed = {num_frames}")
-    print(f"Average FPS (by processing time) = {fps:.2f} fps")
+    # print(f"Average Processing Time per Frame = {avg_processing_time:.4f} s")
+    print(f"FPS = {avg_fps:.2f} fps")
+    # print(f"Actual FPS (by total time) = {fps:.2f} fps")
+    # print(f"Average FPS (by processing time) = {fps:.2f} fps")
+    # Read and display monitoring results
     # Signal monitoring process to stop
     with open(stop_file, 'w') as f:
         f.write("stop")
 
-    # Wait for monitoring process to finish
     monitor_process.wait()
-
-    # Read and display monitoring results
     if os.path.exists(output_file):
         with open(output_file, 'r') as f:
             avg_result = json.load(f)
@@ -189,6 +196,7 @@ if __name__ == "__main__":
     # Clean up stop file
     if os.path.exists(stop_file):
         os.remove(stop_file)
+
     if len(kitti_positions) == len(track_positions):
         estimated_aligned = np.copy(track_positions)
         kitti_positions_np = np.asarray(kitti_positions, dtype=np.float32)

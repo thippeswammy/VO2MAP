@@ -1,9 +1,7 @@
 import argparse
-import json
 import os
 import subprocess
 import time
-from pprint import pprint
 
 import cv2
 import matplotlib.pyplot as plt
@@ -84,7 +82,7 @@ def drawTrajectory_vo(trajMap, trackedPoints, groundtruthPoints, frame_no, len_t
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir_root", type=str, default="../../../data/", help="dataset root")
 parser.add_argument("--dataset_type", type=str, default='KITTI', choices=['KITTI', 'TUM'], help="dataset type")
-parser.add_argument("--len_trajMap", type=int, default=20000, help="size of the trajectory map")
+parser.add_argument("--len_trajMap", type=int, default=2000, help="size of the trajectory map")
 args = parser.parse_args()
 
 if __name__ == "__main__":
@@ -122,8 +120,9 @@ if __name__ == "__main__":
 
     prev_R = np.eye(3)
     prev_t = np.zeros((3, 1))
+    processing_times = []
 
-    for frame_no in tqdm(range(1, min(dataset_reader._numFrames, 20000)), desc="Processing frames", unit="frame"):
+    for frame_no in tqdm(range(1, min(dataset_reader._numFrames, 2000)), desc="Processing frames", unit="frame"):
         start_time = time.time()
 
         curr_frame_BGR = dataset_reader.readFrame(frame_no)
@@ -178,6 +177,10 @@ if __name__ == "__main__":
         kitti_positions.append(np.asarray(kitti_pos).flatten())
         track_positions.append(np.asarray(camera_pos).flatten())
 
+        end_time = time.time()
+        timestamp = end_time - start_time
+        processing_times.append(timestamp)
+
         # qw, qx, qy, qz = rot2quat(camera_rot)
         # with open(out_pose_file, 'a') as f:
         #     f.write('%f %f %f %f %f %f %f %f\n' % (
@@ -199,32 +202,20 @@ if __name__ == "__main__":
         prev_R = curr_R
         prev_t = curr_t
 
+    avg_processing_time = np.mean(processing_times)
+    avg_fps = 1.0 / avg_processing_time if avg_processing_time > 0 else 0
     End_time = time.time_ns()
     total_time = (End_time - Start_time) / 1e9
     num_frames = dataset_reader._numFrames
     fps = num_frames / total_time if total_time > 0 else 0
-
     print(f"Total Time = {total_time:.2f} s")
     print(f"Frames processed = {num_frames}")
-    print(f"Average FPS (by processing time) = {fps:.2f} fps")
+    # print(f"Average Processing Time per Frame = {avg_processing_time:.4f} s")
+    print(f"FPS = {avg_fps:.2f} fps")
+    # print(f"Actual FPS (by total time) = {fps:.2f} fps")
+    # print(f"Average FPS (by processing time) = {fps:.2f} fps")
     # Read and display monitoring results
     # Signal monitoring process to stop
-    with open(stop_file, 'w') as f:
-        f.write("stop")
-
-    monitor_process.wait()
-    if os.path.exists(output_file):
-        with open(output_file, 'r') as f:
-            avg_result = json.load(f)
-        print("\n[AVERAGE USAGE]")
-        pprint(avg_result)
-        os.remove(output_file)  # Clean up
-    else:
-        print("No monitoring results found.")
-
-    # Clean up stop file
-    if os.path.exists(stop_file):
-        os.remove(stop_file)
 
     if len(kitti_positions) == len(track_positions):
         estimated_aligned = np.copy(track_positions)
