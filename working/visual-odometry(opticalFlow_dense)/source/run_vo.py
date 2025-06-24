@@ -122,7 +122,6 @@ if __name__ == "__main__":
 
     prev_R = np.eye(3)
     prev_t = np.zeros((3, 1))
-    processing_times = []
 
     for frame_no in tqdm(range(1, min(dataset_reader._numFrames, 20000)), desc="Processing frames", unit="frame"):
         start_time = time.time()
@@ -179,10 +178,6 @@ if __name__ == "__main__":
         kitti_positions.append(np.asarray(kitti_pos).flatten())
         track_positions.append(np.asarray(camera_pos).flatten())
 
-        end_time = time.time()
-        timestamp = end_time - start_time
-        processing_times.append(timestamp)
-
         # qw, qx, qy, qz = rot2quat(camera_rot)
         # with open(out_pose_file, 'a') as f:
         #     f.write('%f %f %f %f %f %f %f %f\n' % (
@@ -204,19 +199,14 @@ if __name__ == "__main__":
         prev_R = curr_R
         prev_t = curr_t
 
-    avg_processing_time = np.mean(processing_times)
-    avg_fps = 1.0 / avg_processing_time if avg_processing_time > 0 else 0
-
     End_time = time.time_ns()
     total_time = (End_time - Start_time) / 1e9
-    num_frames = len(processing_times)
+    num_frames = dataset_reader._numFrames
     fps = num_frames / total_time if total_time > 0 else 0
 
     print(f"Total Time = {total_time:.2f} s")
     print(f"Frames processed = {num_frames}")
-    print(f"Average Processing Time per Frame = {avg_processing_time:.4f} s")
-    print(f"Average FPS (by processing time) = {avg_fps:.2f} fps")
-    print(f"Actual FPS (by total time) = {fps:.2f} fps")
+    print(f"Average FPS (by processing time) = {fps:.2f} fps")
     # Read and display monitoring results
     # Signal monitoring process to stop
     with open(stop_file, 'w') as f:
