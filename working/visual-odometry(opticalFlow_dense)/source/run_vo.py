@@ -84,7 +84,7 @@ def drawTrajectory_vo(trajMap, trackedPoints, groundtruthPoints, frame_no, len_t
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir_root", type=str, default="../../../data/", help="dataset root")
 parser.add_argument("--dataset_type", type=str, default='KITTI', choices=['KITTI', 'TUM'], help="dataset type")
-parser.add_argument("--len_trajMap", type=int, default=2000, help="size of the trajectory map")
+parser.add_argument("--len_trajMap", type=int, default=20000, help="size of the trajectory map")
 args = parser.parse_args()
 
 if __name__ == "__main__":
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     prev_t = np.zeros((3, 1))
     processing_times = []
 
-    for frame_no in tqdm(range(1, min(dataset_reader._numFrames, 2000)), desc="Processing frames", unit="frame"):
+    for frame_no in tqdm(range(1, min(dataset_reader._numFrames, 20000)), desc="Processing frames", unit="frame"):
         start_time = time.time()
 
         curr_frame_BGR = dataset_reader.readFrame(frame_no)
@@ -206,11 +206,17 @@ if __name__ == "__main__":
 
     avg_processing_time = np.mean(processing_times)
     avg_fps = 1.0 / avg_processing_time if avg_processing_time > 0 else 0
+
     End_time = time.time_ns()
-    time_taken = (End_time - Start_time) / 1e9
-    fps = 20 / time_taken
-    print(f"Total Time = {time_taken} ns")
-    print(f"Frames per Second = {fps:.2f} fps")
+    total_time = (End_time - Start_time) / 1e9
+    num_frames = len(processing_times)
+    fps = num_frames / total_time if total_time > 0 else 0
+
+    print(f"Total Time = {total_time:.2f} s")
+    print(f"Frames processed = {num_frames}")
+    print(f"Average Processing Time per Frame = {avg_processing_time:.4f} s")
+    print(f"Average FPS (by processing time) = {avg_fps:.2f} fps")
+    print(f"Actual FPS (by total time) = {fps:.2f} fps")
     # Read and display monitoring results
     # Signal monitoring process to stop
     with open(stop_file, 'w') as f:
@@ -236,9 +242,9 @@ if __name__ == "__main__":
         kitti_positions_np = np.asarray(kitti_positions, dtype=np.float32)
         plot_3d_trajectories(estimated_aligned, kitti_positions)
         ate = compute_absolute_trajectory_error(estimated_aligned, kitti_positions)
-        print(f"[RESULT] Absolute Trajectory Error (ATE): {ate:.4f} meters")
+        print(f"\n\n[RESULT] Absolute Trajectory Error (ATE): {ate:.4f} meters")
     else:
-        print(f"[ERROR] Length mismatch between trajectory and groundtruth")
+        print(f"\n\n[ERROR] Length mismatch between trajectory and groundtruth")
 
     cv2.imwrite(f'KITTI-{seq}_trajMap.png', cv2.flip(trajMap, 0))
     cv2.destroyAllWindows()
