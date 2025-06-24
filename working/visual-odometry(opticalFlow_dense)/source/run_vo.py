@@ -1,6 +1,9 @@
 import argparse
+import json
 import os
+import subprocess
 import time
+from pprint import pprint
 
 import cv2
 import matplotlib.pyplot as plt
@@ -85,6 +88,20 @@ parser.add_argument("--len_trajMap", type=int, default=2000, help="size of the t
 args = parser.parse_args()
 
 if __name__ == "__main__":
+    PID = os.getpid()
+    stop_file = "stop.txt"
+    output_file = "usage.json"
+
+    # Remove stop file if it exists
+    if os.path.exists(stop_file):
+        os.remove(stop_file)
+
+    monitor_cmd = ["python", r"F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\utils\monitor.py", "--pid",
+                   str(PID), "--output_file", output_file, "--stop_file", stop_file]
+    monitor_process = subprocess.Popen(monitor_cmd)
+    print(f"Started monitoring process with PID {monitor_process.pid}")
+
+    Start_time = time.time_ns()
     width = 1241.0
     height = 376.0
     fx, fy, cx, cy = [718.8560, 718.8560, 607.1928, 185.2157]
@@ -189,7 +206,29 @@ if __name__ == "__main__":
 
     avg_processing_time = np.mean(processing_times)
     avg_fps = 1.0 / avg_processing_time if avg_processing_time > 0 else 0
-    print(f"[INFO] Average FPS: {avg_fps:.2f}")
+    End_time = time.time_ns()
+    time_taken = (End_time - Start_time) / 1e9
+    fps = 20 / time_taken
+    print(f"Total Time = {time_taken} ns")
+    print(f"Frames per Second = {fps:.2f} fps")
+    # Read and display monitoring results
+    # Signal monitoring process to stop
+    with open(stop_file, 'w') as f:
+        f.write("stop")
+
+    monitor_process.wait()
+    if os.path.exists(output_file):
+        with open(output_file, 'r') as f:
+            avg_result = json.load(f)
+        print("\n[AVERAGE USAGE]")
+        pprint(avg_result)
+        os.remove(output_file)  # Clean up
+    else:
+        print("No monitoring results found.")
+
+    # Clean up stop file
+    if os.path.exists(stop_file):
+        os.remove(stop_file)
 
     if len(kitti_positions) == len(track_positions):
         estimated_aligned = np.copy(track_positions)
