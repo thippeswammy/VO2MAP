@@ -1,7 +1,9 @@
 import argparse
+import json
 import os
 import subprocess
 import time
+from pprint import pprint
 
 import cv2
 import matplotlib.pyplot as plt
@@ -94,7 +96,7 @@ if __name__ == "__main__":
     if os.path.exists(stop_file):
         os.remove(stop_file)
 
-    monitor_cmd = ["python", r"F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\utils\monitor.py", "--pid",
+    monitor_cmd = ["python", r"/home/sdv_edge2/PycharmProjects/VO2MAP/utils/monitor.py", "--pid",
                    str(PID), "--output_file", output_file, "--stop_file", stop_file]
     monitor_process = subprocess.Popen(monitor_cmd)
     print(f"Started monitoring process with PID {monitor_process.pid}")
@@ -104,7 +106,7 @@ if __name__ == "__main__":
     height = 376.0
     fx, fy, cx, cy = [718.8560, 718.8560, 607.1928, 185.2157]
 
-    seq = '09'
+    seq = '01'
     dataset_reader = DatasetReaderKITTI(args.data_dir_root + 'kitti-odom/' + seq)
     K = dataset_reader.readCameraMatrix()
 
@@ -216,6 +218,22 @@ if __name__ == "__main__":
     # print(f"Average FPS (by processing time) = {fps:.2f} fps")
     # Read and display monitoring results
     # Signal monitoring process to stop
+    with open(stop_file, 'w') as f:
+        f.write("stop")
+
+    monitor_process.wait()
+    if os.path.exists(output_file):
+        with open(output_file, 'r') as f:
+            avg_result = json.load(f)
+        print("\n[AVERAGE USAGE]")
+        pprint(avg_result)
+        os.remove(output_file)  # Clean up
+    else:
+        print("No monitoring results found.")
+
+    # Clean up stop file
+    if os.path.exists(stop_file):
+        os.remove(stop_file)
 
     if len(kitti_positions) == len(track_positions):
         estimated_aligned = np.copy(track_positions)
