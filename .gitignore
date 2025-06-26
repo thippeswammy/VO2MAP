@@ -8,6 +8,10 @@ videos/
 /.venv
 /data/
 /notUsefull/
+working/kitti-odom-eval/result
+working/kitti-odom-eval/plots
+working/kitti-odom-eval/.*png
+working/kitti-odom-eval/.*html
 /notUsefull/DeepMatchVO/checkpoints/depth_model/model-250000.data-00000-of-00001
 /notUsefull/DeepMatchVO/ckpt/model-250000.data-00000-of-00001
 /notUsefull/DeepMatchVO/checkpoints/depth_model/model-250000.index
