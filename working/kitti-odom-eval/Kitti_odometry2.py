@@ -28,7 +28,7 @@ def umeyama_alignment(x, y, with_scale=False):
     sigma_x = 1.0 / n * (np.linalg.norm(x - mean_x[:, np.newaxis]) ** 2)
     outer_sum = np.zeros((m, m))
     for i in range(n):
-        outer_sum += np.outer((y[:, i] - mean_y), (x[:, i] - mean_x))
+        outer_sum += np.outer(y[:, i] - mean_y, x[:, i] - mean_x)
     cov_xy = outer_sum / n
     u, d, v = np.linalg.svd(cov_xy)
     s = np.eye(m)
@@ -55,8 +55,6 @@ class KittiEvalOdom:
         groundtruth = np.asarray(groundtruth, dtype=np.float32)
 
         fig = go.Figure()
-
-        # Estimated trajectory
         fig.add_trace(go.Scatter3d(
             x=estimated[:, 0], y=estimated[:, 1], z=estimated[:, 2],
             mode='lines+markers',
@@ -64,8 +62,6 @@ class KittiEvalOdom:
             line=dict(color='blue'),
             name='Estimated'
         ))
-
-        # Groundtruth trajectory
         fig.add_trace(go.Scatter3d(
             x=groundtruth[:, 0], y=groundtruth[:, 1], z=groundtruth[:, 2],
             mode='lines+markers',
@@ -73,20 +69,12 @@ class KittiEvalOdom:
             line=dict(color='green', dash='dash'),
             name='Groundtruth'
         ))
-
-        # Layout
         fig.update_layout(
             title=title,
-            scene=dict(
-                xaxis_title='X (meters)',
-                yaxis_title='Y (meters)',
-                zaxis_title='Z (meters)'
-            ),
+            scene=dict(xaxis_title='X (m)', yaxis_title='Y (m)', zaxis_title='Z (m)'),
             legend=dict(x=0.02, y=0.98)
         )
-
         fig.write_html(file_name)
-        # fig.show()  # Comment out to avoid opening browser during batch processing
 
     @staticmethod
     def load_poses_from_txt(file_name):
@@ -105,7 +93,7 @@ class KittiEvalOdom:
                     for row in range(3):
                         for col in range(4):
                             P[row, col] = line_split[row * 4 + col + offset]
-                    frame_idx = line_split[0] if offset else cnt
+                    frame_idx = int(line_split[0]) if offset else cnt
                     poses[frame_idx] = P
                 except ValueError as e:
                     print(f"Error parsing line {cnt + 1} in {file_name}: {e}")
@@ -122,11 +110,8 @@ class KittiEvalOdom:
         dist = [0]
         keys = sorted(poses.keys())
         for i in range(len(keys) - 1):
-            P1 = poses[keys[i]]
-            P2 = poses[keys[i + 1]]
-            dx = P1[0, 3] - P2[0, 3]
-            dy = P1[1, 3] - P2[1, 3]
-            dz = P1[2, 3] - P2[2, 3]
+            P1, P2 = poses[keys[i]], poses[keys[i + 1]]
+            dx, dy, dz = P1[0, 3] - P2[0, 3], P1[1, 3] - P2[1, 3], P1[2, 3] - P2[2, 3]
             dist.append(dist[i] + np.sqrt(dx ** 2 + dy ** 2 + dz ** 2))
         return dist
 
@@ -147,7 +132,7 @@ class KittiEvalOdom:
     def last_frame_from_segment_length(dist, first_frame, length):
         """Find frame index for segment of specified length."""
         for i in range(first_frame, len(dist)):
-            if dist[i] > (dist[first_frame] + length):
+            if dist[i] > dist[first_frame] + length:
                 return i
         return -1
 
@@ -156,8 +141,8 @@ class KittiEvalOdom:
         err = []
         dist = self.trajectory_distances(poses_gt)
         for first_frame in range(0, len(poses_gt), self.step_size):
-            for len_ in self.lengths:
-                last_frame = self.last_frame_from_segment_length(dist, first_frame, len_)
+            for length in self.lengths:
+                last_frame = self.last_frame_from_segment_length(dist, first_frame, length)
                 if last_frame == -1 or last_frame not in poses_result or first_frame not in poses_result:
                     continue
                 pose_delta_gt = np.linalg.inv(poses_gt[first_frame]) @ poses_gt[last_frame]
@@ -165,7 +150,7 @@ class KittiEvalOdom:
                 pose_error = np.linalg.inv(pose_delta_result) @ pose_delta_gt
                 r_err = self.rotation_error(pose_error)
                 t_err = self.translation_error(pose_error)
-                err.append([first_frame, r_err / len_, t_err / len_, len_])
+                err.append([first_frame, r_err / length, t_err / length, length])
         return err
 
     @staticmethod
@@ -179,20 +164,19 @@ class KittiEvalOdom:
 
     def compute_segment_error(self, seq_errs):
         """Calculate average errors for different segments."""
-        segment_errs = {len_: [] for len_ in self.lengths}
+        segment_errs = {length: [] for length in self.lengths}
         avg_segment_errs = {}
         for err in seq_errs:
-            len_ = err[3]
-            t_err = err[2]
-            r_err = err[1]
-            segment_errs[len_].append([t_err, r_err])
-        for len_ in self.lengths:
-            if segment_errs[len_]:
-                avg_t_err = np.mean(np.asarray(segment_errs[len_])[:, 0])
-                avg_r_err = np.mean(np.asarray(segment_errs[len_])[:, 1])
-                avg_segment_errs[len_] = [avg_t_err, avg_r_err]
+            length = err[3]
+            t_err, r_err = err[2], err[1]
+            segment_errs[length].append([t_err, r_err])
+        for length in self.lengths:
+            if segment_errs[length]:
+                avg_t_err = np.mean(np.asarray(segment_errs[length])[:, 0])
+                avg_r_err = np.mean(np.asarray(segment_errs[length])[:, 1])
+                avg_segment_errs[length] = [avg_t_err, avg_r_err]
             else:
-                avg_segment_errs[len_] = []
+                avg_segment_errs[length] = []
         return avg_segment_errs
 
     @staticmethod
@@ -203,18 +187,19 @@ class KittiEvalOdom:
             gt_xyz = gt[i][:3, 3]
             pred_xyz = pred[i][:3, 3]
             errors.append(np.sqrt(np.sum((gt_xyz - pred_xyz) ** 2)))
-        return np.sqrt(np.mean(np.asarray(errors) ** 2))
+        return np.sqrt(np.mean(np.asarray(errors) ** 2)) if errors else 0
 
     def compute_RPE(self, gt, pred):
         """Compute Relative Pose Error (translation and rotation)."""
         trans_errors, rot_errors = [], []
         keys = sorted(pred.keys())[:-1]
         for i in keys:
-            gt_rel = np.linalg.inv(gt[i]) @ gt[i + 1]
-            pred_rel = np.linalg.inv(pred[i]) @ pred[i + 1]
-            rel_err = np.linalg.inv(gt_rel) @ pred_rel
-            trans_errors.append(self.translation_error(rel_err))
-            rot_errors.append(self.rotation_error(rel_err))
+            if i + 1 in pred and i + 1 in gt:
+                gt_rel = np.linalg.inv(gt[i]) @ gt[i + 1]
+                pred_rel = np.linalg.inv(pred[i]) @ pred[i + 1]
+                rel_err = np.linalg.inv(gt_rel) @ pred_rel
+                trans_errors.append(self.translation_error(rel_err))
+                rot_errors.append(self.rotation_error(rel_err))
         return np.mean(trans_errors) if trans_errors else 0, np.mean(rot_errors) if rot_errors else 0
 
     def compute_translational_rmse(self, gt, pred):
@@ -245,7 +230,9 @@ class KittiEvalOdom:
     def compute_drift(gt, pred):
         """Compute final drift (Euclidean distance at last frame)."""
         keys = sorted(gt.keys())
-        return np.linalg.norm(gt[keys[-1]][:3, 3] - pred[keys[-1]][:3, 3])
+        if keys and keys[-1] in pred:
+            return np.linalg.norm(gt[keys[-1]][:3, 3] - pred[keys[-1]][:3, 3])
+        return 0.0
 
     @staticmethod
     def write_result(f, seq, errs):
@@ -269,7 +256,6 @@ class KittiEvalOdom:
 
     def eval(self, gt_dir, result_dir, alignment=None, seqs=None, eval_seqs="", file_name_plot=''):
         """Evaluate sequences and return metrics."""
-        seq_list = [f"{i:02}" for i in range(11)]
         self.gt_dir = gt_dir
         error_dir = os.path.join(result_dir, "errors")
         self.plot_path_dir = os.path.join(result_dir, "plot_path")
@@ -278,14 +264,12 @@ class KittiEvalOdom:
         os.makedirs(error_dir, exist_ok=True)
         os.makedirs(self.plot_path_dir, exist_ok=True)
         os.makedirs(self.plot_error_dir, exist_ok=True)
-        # eval_seqs = seqs if seqs else [int(i[-6:-4]) for i in sorted(glob(os.path.join(result_dir, "*.txt"))) if
-        #                                i[-6:-4] in seq_list]
         with open(result_txt, 'w') as f:
-            file_name = f"{eval_seqs:02}.txt"
-            result_file = os.path.join(result_dir, file_name)
-            gt_file = os.path.join(gt_dir, f"{eval_seqs[:2]:02}.txt")
+            result_file = os.path.join(result_dir, f"{eval_seqs}.txt")
+            gt_file = os.path.join(gt_dir, f"{eval_seqs[:2]}.txt")
             if not os.path.exists(result_file):
                 print(f"Pose file {result_file} not found")
+                return []
             try:
                 poses_result = self.load_poses_from_txt(result_file)
                 poses_gt = self.load_poses_from_txt(gt_file)
@@ -309,7 +293,7 @@ class KittiEvalOdom:
                         if alignment in ["7dof", "6dof"]:
                             poses_result[cnt] = align_transformation @ poses_result[cnt]
                 seq_err = self.calc_sequence_errors(poses_gt, poses_result)
-                self.save_sequence_errors(seq_err, os.path.join(error_dir, file_name))
+                self.save_sequence_errors(seq_err, os.path.join(error_dir, f"{eval_seqs}.txt"))
                 t_rel, r_rel = self.compute_overall_err(seq_err)
                 ate = self.compute_ATE(poses_gt, poses_result)
                 trans_rmse = self.compute_translational_rmse(poses_gt, poses_result)
@@ -317,7 +301,6 @@ class KittiEvalOdom:
                 gt_dist = self.compute_total_distance(poses_gt)
                 pred_dist = self.compute_total_distance(poses_result)
                 drift = self.compute_drift(poses_gt, poses_result)
-                # Extract 3D coordinates for plotting
                 pos_result = np.array([poses_result[k][:3, 3] for k in sorted(poses_result.keys())])
                 pos_gt = np.array([poses_gt[k][:3, 3] for k in sorted(poses_gt.keys()) if k in poses_result])
                 self.plot_trajectory(poses_gt, poses_result, eval_seqs, pos_gt, pos_result, file_name_plot)
@@ -328,8 +311,7 @@ class KittiEvalOdom:
                 return metrics
             except Exception as e:
                 print(f"Error processing sequence {eval_seqs}: {e}")
-                import traceback
-                traceback.print_exc()
+                return []
         return []
 
     @staticmethod
@@ -341,7 +323,6 @@ class KittiEvalOdom:
 
     def plot_trajectory(self, poses_gt, poses_result, seq, pos_gt, pos_result, file_name_plot):
         """Plot ground truth and predicted trajectories."""
-        # 2D Plot (x, z)
         fig = plt.figure(figsize=(10, 10))
         ax = plt.gca()
         ax.set_aspect('equal')
@@ -353,12 +334,10 @@ class KittiEvalOdom:
         plt.ylabel('z (m)', fontsize=20)
         plt.savefig(os.path.join(self.plot_path_dir, file_name_plot), bbox_inches='tight', pad_inches=0)
         plt.close()
-
-        # 3D Interactive Plot
         self.plot_3d_trajectories_interactive(
             pos_result,
             pos_gt,
-            title=f"3D Trajectory Comparison for Sequence {seq:02}",
+            title=f"3D Trajectory Comparison for Sequence {seq}",
             file_name=os.path.join(self.plot_path_dir, file_name_plot.split('.')[0] + ".html")
         )
 
@@ -366,24 +345,22 @@ class KittiEvalOdom:
         """Plot translation and rotation errors per segment length."""
         fontsize = 10
         plot_x = self.lengths
-        # Translation error
-        plot_y = [avg_segment_errs[len_][0] * 100 if avg_segment_errs[len_] else 0 for len_ in self.lengths]
+        plot_y = [avg_segment_errs[length][0] * 100 if avg_segment_errs[length] else 0 for length in self.lengths]
         plt.figure(figsize=(5, 5))
         plt.plot(plot_x, plot_y, "bs-", label="t_rel (%)")
         plt.xlabel('Path Length (m)', fontsize=fontsize)
         plt.ylabel('Translation Error (%)', fontsize=fontsize)
         plt.legend(loc="upper right", prop={'size': fontsize})
-        plt.savefig(os.path.join(self.plot_error_dir, f"trans_err_{seq:02}.png"), bbox_inches='tight', pad_inches=0)
+        plt.savefig(os.path.join(self.plot_error_dir, f"trans_err_{seq}.png"), bbox_inches='tight', pad_inches=0)
         plt.close()
-        # Rotation error
-        plot_y = [avg_segment_errs[len_][1] / np.pi * 180 * 100 if avg_segment_errs[len_] else 0 for len_ in
+        plot_y = [avg_segment_errs[length][1] / np.pi * 180 * 100 if avg_segment_errs[length] else 0 for length in
                   self.lengths]
         plt.figure(figsize=(5, 5))
         plt.plot(plot_x, plot_y, "bs-", label="r_rel (deg/100m)")
         plt.xlabel('Path Length (m)', fontsize=fontsize)
         plt.ylabel('Rotation Error (deg/100m)', fontsize=fontsize)
         plt.legend(loc="upper right", prop={'size': fontsize})
-        plt.savefig(os.path.join(self.plot_error_dir, f"rot_err_{seq:02}.png"), bbox_inches='tight', pad_inches=0)
+        plt.savefig(os.path.join(self.plot_error_dir, f"rot_err_{seq}.png"), bbox_inches='tight', pad_inches=0)
         plt.close()
 
 
@@ -399,8 +376,8 @@ if __name__ == "__main__":
     headers = ["Method", "Alignment", "t_rel (%)", "r_rel (deg/100m)", "ATE (m)", "Trans RMSE (m)",
                "RPE trans (m)", "RPE rot (deg)", "GT Dist (m)", "Pred Dist (m)", "Drift (m)"]
     results_table = []
-    alignments = ['Direct']
-    base_seqs = [9]  # Base sequence numbers
+    alignments = ['Direct', 'scale', '6dof']
+    base_seqs = [0, 9]  # Base sequence numbers
 
     parser = argparse.ArgumentParser(description='KITTI VO evaluation with repetitions')
     parser.add_argument('--result', type=str, default='./vo_data', help='Root directory of result folders')
@@ -413,9 +390,9 @@ if __name__ == "__main__":
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
-    # Expand sequences to include repetitions (e.g., 1_1, 1_2, 1_3)
-    seq_repeats = [(f"{seq:02}", i) for seq in args.seqs for i in range(1, 2)]
-    print(seq_repeats)
+    # Expand sequences to include repetitions (e.g., 00_1, 00_2, 00_3)
+    seq_repeats = [(f"{seq:02}", i) for seq in args.seqs for i in range(1, 4)]
+    print("Sequence repetitions:", seq_repeats)
     for folder in dir_list:
         for align in alignments:
             for seq, repeat in seq_repeats:
@@ -423,7 +400,7 @@ if __name__ == "__main__":
                 parser_inner = argparse.ArgumentParser(description='KITTI VO evaluation')
                 parser_inner.add_argument('--result', type=str, default=folder)
                 parser_inner.add_argument('--align', type=str, default=align)
-                parser_inner.add_argument('--seqs', nargs="+", type=int, default=[seq])
+                parser_inner.add_argument('--seqs', nargs="+", type=int, default=[int(seq)])
                 args_inner = parser_inner.parse_args([])
                 eval_tool = KittiEvalOdom()
                 try:
@@ -448,40 +425,57 @@ if __name__ == "__main__":
                                                  f"{metrics[6]:.3f}",
                                                  f"{metrics[7]:.3f}",
                                                  f"{metrics[8]:.3f}"
-                                             ] + [seq_str])  # Append seq_repeat as an extra column for tracking
+                                             ] + [seq_str])  # Append seq_repeat as an extra column
                 except Exception as e:
                     print(f"Error processing {folder} with alignment {align} for seq {seq_str}: {e}")
 
-    # Aggregate results by base sequence and alignment, averaging over repetitions
+    # Display detailed results for each repetition
+    print("\nDetailed Evaluation Results for Each Repetition:")
+    print(tabulate(results_table, headers=headers + ["Sequence"], tablefmt="grid"))
+    df_detailed = pd.DataFrame(results_table, columns=headers + ["Sequence"])
+    excel_detailed_file = output_dir / "vo_evaluation_results_detailed.xlsx"
+    df_detailed.to_excel(excel_detailed_file, index=False)
+    print(f"\nDetailed results saved to: {excel_detailed_file}")
+
+    # Aggregate results by base sequence and alignment, averaging over repetitions for all base_seqs
     averaged_results = []
     for folder in set(row[0] for row in results_table):
         for align in alignments:
             for seq in args.seqs:
+                seq_str = f"{seq:02}"
                 seq_data = [row for row in results_table if
-                            row[0] == folder and row[1] == align and row[11].startswith(f"{seq}_")]
+                            row[0] == folder and row[1] == align and row[11].startswith(seq_str + "_")]
                 if seq_data:
-                    avg_metrics = [float(row[i]) for i in range(2, 11) for row in seq_data]
-                    avg_metrics = [sum(avg_metrics[i::9]) / 3 for i in range(9)]  # Average over 3 repetitions
-                    averaged_results.append([
-                        folder,
-                        align,
-                        f"{avg_metrics[0]:.3f}",
-                        f"{avg_metrics[1]:.3f}",
-                        f"{avg_metrics[2]:.3f}",
-                        f"{avg_metrics[3]:.3f}",
-                        f"{avg_metrics[4]:.3f}",
-                        f"{avg_metrics[5]:.3f}",
-                        f"{avg_metrics[6]:.3f}",
-                        f"{avg_metrics[7]:.3f}",
-                        f"{avg_metrics[8]:.3f}"
-                    ])
+                    # Check if all three repetitions are present
+                    expected_repeats = [f"{seq_str}_{i}" for i in range(1, 4)]
+                    available_repeats = [row[11] for row in seq_data]
+                    if all(rep in available_repeats for rep in expected_repeats):
+                        # Collect metrics for averaging and convert strings to floats
+                        metrics_list = [[float(row[i]) for i in range(2, 11)] for row in seq_data]  # Convert to floats
+                        avg_metrics = [sum(col) / 3 for col in zip(*metrics_list)]  # Average across 3 repetitions
+                        averaged_results.append([
+                            folder,
+                            align,
+                            f"{avg_metrics[0]:.3f}",
+                            f"{avg_metrics[1]:.3f}",
+                            f"{avg_metrics[2]:.3f}",
+                            f"{avg_metrics[3]:.3f}",
+                            f"{avg_metrics[4]:.3f}",
+                            f"{avg_metrics[5]:.3f}",
+                            f"{avg_metrics[6]:.3f}",
+                            f"{avg_metrics[7]:.3f}",
+                            f"{avg_metrics[8]:.3f}",
+                            seq_str  # Base sequence
+                        ])
+                    else:
+                        print(f"Warning: Incomplete repetitions for seq {seq_str} in {folder} with {align}")
 
     print("\nAveraged Evaluation Results:")
-    print(tabulate(averaged_results, headers=headers, tablefmt="grid"))
-    df = pd.DataFrame(averaged_results, columns=headers)
-    excel_file = output_dir / "vo_evaluation_results_averaged.xlsx"
-    df.to_excel(excel_file, index=False)
-    print(f"\nAveraged results saved to: {excel_file}")
+    print(tabulate(averaged_results, headers=headers + ["Base Sequence"], tablefmt="grid"))
+    df_averaged = pd.DataFrame(averaged_results, columns=headers + ["Base Sequence"])
+    excel_averaged_file = output_dir / "vo_evaluation_results_averaged.xlsx"
+    df_averaged.to_excel(excel_averaged_file, index=False)
+    print(f"\nAveraged results saved to: {excel_averaged_file}")
 
     methods = sorted(set(row[0] for row in averaged_results))
     labels = [f"{m} ({a})" for m in methods for a in alignments]
