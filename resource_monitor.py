@@ -6,7 +6,7 @@ import psutil
 import threading
 
 try:
-    import jtop
+    from jtop import JTop
     HAS_JTOP = True
 except ImportError:
     HAS_JTOP = False
@@ -27,7 +27,7 @@ def monitor(pid, output_file="resource_usage.json", stop_file="stop.txt"):
     start_time = time.time()
 
     def collect_with_jtop():
-        with jtop.Jtop() as jetson:
+        with JTop() as jetson:
             while not os.path.exists(stop_file):
                 stats = jetson.stats
                 cpu_readings.append(process.cpu_percent(interval=0.1))

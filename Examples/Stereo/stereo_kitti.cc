@@ -11,6 +11,8 @@
 #include<sys/stat.h>
 #include<opencv2/core/core.hpp>
 #include<thread>
+#include<numeric>
+#include<jsoncpp/json/json.h>
 #include<System.h>
 
 using namespace std;
@@ -23,7 +25,7 @@ bool FileExistsAndNotEmpty(const string& filename) {
     return (stat(filename.c_str(), &fileStat) == 0 && fileStat.st_size > 0);
 }
 
-void PrintJsonReport(const string& filename) {
+Json::Value ParseJsonReport(const string& filename) {
     int timeout = 5;
     while (timeout-- > 0) {
         if (FileExistsAndNotEmpty(filename)) {
@@ -33,17 +35,15 @@ void PrintJsonReport(const string& filename) {
     }
 
     ifstream json_file(filename);
+    Json::Value root;
     if (json_file.is_open()) {
-        cout << "--- Resource Usage Statistics (from " << filename << ") ---" << endl;
-        string line;
-        while (getline(json_file, line)) {
-            cout << line << endl;
-        }
+        json_file >> root;
         json_file.close();
         remove(filename.c_str());
     } else {
         cerr << "Warning: Could not open " << filename << " to read statistics." << endl;
     }
+    return root;
 }
 
 int main(int argc, char **argv)
@@ -113,14 +113,27 @@ int main(int argc, char **argv)
     cout << "Waiting for resource monitor to finalize and write report..." << endl;
     this_thread::sleep_for(chrono::seconds(2));
 
-    PrintJsonReport("resource_usage.json");
+    Json::Value usage_stats = ParseJsonReport("resource_usage.json");
     remove("stop.txt");
 
     sort(vTimesTrack.begin(), vTimesTrack.end());
     float totaltime = accumulate(vTimesTrack.begin(), vTimesTrack.end(), 0.0f);
+    float mean_time = totaltime / nImages;
+    float fps = static_cast<float>(nImages) / totaltime;
+
     cout << "-------" << endl << endl;
     cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
-    cout << "mean tracking time: " << totaltime/nImages << endl;
+    cout << "mean tracking time: " << mean_time << endl;
+
+    cout << endl << "======== Overall Evaluation ========" << endl;
+    cout << "Total Time = " << totaltime << " s" << endl;
+    cout << "Frames processed = " << nImages << endl;
+    cout << "FPS = " << fps << " fps" << endl << endl;
+
+    cout << "[AVERAGE USAGE]" << endl;
+    Json::StreamWriterBuilder writer;
+    writer["indentation"] = " ";
+    cout << Json::writeString(writer, usage_stats) << endl;
 
     SLAM.SaveTrajectoryKITTI("CameraTrajectory.txt");
 
