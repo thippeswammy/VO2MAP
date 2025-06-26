@@ -3,35 +3,11 @@ import time
 import os
 import json
 import psutil
-# Attempt to import pynvml and set a flag
-pynvml_imported = False
-try:
-    from pynvml import (nvmlInit, nvmlShutdown, nvmlDeviceGetCount,
-                        nvmlDeviceGetHandleByIndex, nvmlDeviceGetUtilizationRates,
-                        nvmlDeviceGetMemoryInfo, nvmlDeviceGetPowerUsage, NVMLError)
-    pynvml_imported = True
-except ImportError:
-    # This print occurs at import time, which is fine.
-    print("pynvml library not found or failed to import. GPU monitoring will be disabled.")
-
-def get_gpu_metrics(handle):
-    metrics = {}
-    try:
-        util = nvmlDeviceGetUtilizationRates(handle)
-        metrics['gpu_util_percent'] = util.gpu
-        mem_info = nvmlDeviceGetMemoryInfo(handle)
-        metrics['gpu_mem_used_mb'] = mem_info.used / (1024**2)
-        try:
-            power_mw = nvmlDeviceGetPowerUsage(handle)
-            metrics['gpu_power_watts'] = power_mw / 1000.0
-        except NVMLError: # Some GPUs might not support power reading
-            metrics['gpu_power_watts'] = None
-    except NVMLError as e:
-        print(f"Warning: Could not get some GPU metrics for handle: {e}")
-    return metrics
+import subprocess
+import re
 
 def main():
-    parser = argparse.ArgumentParser(description="Monitor resource usage of a process.")
+    parser = argparse.ArgumentParser(description="Monitor resource usage of a process. On Jetson, uses tegrastats for system/GPU metrics.")
     parser.add_argument("pid", type=int, help="Process ID to monitor.")
     args = parser.parse_args()
 
@@ -55,42 +31,135 @@ def main():
     cpu_readings = []
     ram_readings_mb = []
 
-    gpu_handles = []
-    # This will be a list of dicts, where each dict stores lists of readings for a specific GPU
-    # e.g., [{'gpu_util_percent': [], 'gpu_mem_used_mb': [], 'gpu_power_watts': []}, ...]
-    gpu_metrics_data_list = []
+    # Data structures for tegrastats
+    tegrastats_gpu_util_readings = []
+    tegrastats_ram_system_used_readings = []
+    # Power readings - add more as needed from parsing
+    tegrastats_power_vdd_in_mw_readings = []
+    tegrastats_power_cpu_gpu_cv_mw_readings = []
+    tegrastats_power_soc_mw_readings = []
+    # Temperature readings
+    tegrastats_temp_gpu_c_readings = []
+    tegrastats_temp_cpu_c_readings = [] # Example for one CPU temp, tegra might have more
 
-    nvml_active = False # Local flag in main to track if NVML is successfully initialized and active
-    if pynvml_imported: # Check if pynvml was successfully imported at the global scope
-        try:
-            nvmlInit()
-            device_count = nvmlDeviceGetCount()
-            if device_count == 0:
-                print("No NVIDIA GPU detected by pynvml.")
-                # nvml_active remains False
-            else:
-                print(f"Found {device_count} NVIDIA GPU(s).")
-                for i in range(device_count):
-                    try:
-                        handle = nvmlDeviceGetHandleByIndex(i)
-                        gpu_handles.append(handle)
-                        gpu_metrics_data_list.append({
-                            'gpu_util_percent': [],
-                            'gpu_mem_used_mb': [],
-                            'gpu_power_watts': []
-                        })
-                    except NVMLError as e:
-                        print(f"Error getting handle for GPU {i}: {e}")
-
-                if gpu_handles: # Only set nvml_active to True if we actually got handles
-                    nvml_active = True
-
-        except NVMLError as e:
-            print(f"Error initializing NVML or getting GPU information: {e}")
-            # nvml_active remains False
+    tegrastats_available = True # Assume available, will be set to False if command fails
 
     print("Monitoring started. Waiting for stop.txt to appear...")
+    print("Attempting to use tegrastats for GPU and system metrics.")
     monitoring_duration_seconds = 0
+
+# --- Tegrastats Functions ---
+# Example tegrastats output line for parsing reference:
+# RAM 1800/7761MB (lfb 2x4MB) CPU [1%@1190,0%@1190,0%@1190,0%@1190,0%@1190,1%@1190] EMC_FREQ 0% GR3D_FREQ 0% AO@32.5C GPU@32C BCPU@32.5C MCPU@32.5C PLL@32.5C Tboard@30C Tdiode@30.75C PMIC@100C thermal@32.2C VDD_IN 3875/3875 VDD_CPU_GPU_CV 874/874 VDD_SOC 1037/1037
+# JetPack 5.x example:
+# RAM 3480/15691MB (lfb 3x2048kB) SWAP 0/7845MB (cached 0MB) IRAM 0/255kB(lfb 255kB) CPU [0%@1036,0%@1036,0%@1036,0%@1036,0%@1036,0%@1036,0%@1036,0%@1036] EMC_FREQ 0% GR3D_FREQ 0% VIC_FREQ 0% MSENC 0% NVDEC 0% APE 0% GR3D 0W/0W CPU_TOT 0W/0W SOC_TOT 0W/0W CV_TOT 0W/0W VDDRQ 0W/0W SYS5V 0W/0W thermal@30.0C POM_5V_CPU_GPU_CV 0mW/0mW POM_5V_IN 0mW/0mW POM_5V_SOC 0mW/0mW
+
+def parse_tegrastats_output(output_str):
+    metrics = {}
+    if not output_str:
+        return metrics
+
+    # GPU Utilization (GR3D_FREQ X% or GR3D XW/YW)
+    # Prefer XW/YW if available (JetPack 5+) as it's actual power/load
+    gr3d_power_match = re.search(r"GR3D\s+(\d+)W/(\d+)W", output_str)
+    if gr3d_power_match:
+        metrics['gpu_power_gr3d_mw'] = int(gr3d_power_match.group(1)) * 1000 # Current power
+        # metrics['gpu_load_gr3d_percent'] = (int(gr3d_power_match.group(1)) / int(gr3d_power_match.group(2))) * 100 if int(gr3d_power_match.group(2)) > 0 else 0
+    else: # Fallback to GR3D_FREQ % for older JetPacks
+        gr3d_freq_match = re.search(r"GR3D_FREQ\s+(\d+)%", output_str)
+        if gr3d_freq_match:
+            metrics['gpu_util_gr3d_freq_percent'] = int(gr3d_freq_match.group(1))
+
+    # RAM Usage (System Total) - Example: RAM 2365/15829MB
+    ram_match = re.search(r"RAM\s+(\d+)/(\d+)MB", output_str)
+    if ram_match:
+        metrics['ram_system_used_mb'] = int(ram_match.group(1))
+        metrics['ram_system_total_mb'] = int(ram_match.group(2))
+
+    # Power VDD_IN (Main input power) - Example: VDD_IN 3340/3340 (current/avg mW)
+    vdd_in_match = re.search(r"VDD_IN\s+(\d+)/(\d+)", output_str)
+    if vdd_in_match:
+        metrics['power_vdd_in_mw'] = int(vdd_in_match.group(1))
+
+    # Power VDD_CPU_GPU_CV - Example: VDD_CPU_GPU_CV 742/742
+    vdd_cpu_gpu_cv_match = re.search(r"VDD_CPU_GPU_CV\s+(\d+)/(\d+)", output_str)
+    if vdd_cpu_gpu_cv_match:
+        metrics['power_cpu_gpu_cv_mw'] = int(vdd_cpu_gpu_cv_match.group(1))
+
+    # Power POM_5V_CPU_GPU_CV (JetPack 5+)
+    pom_cpu_gpu_cv_match = re.search(r"POM_5V_CPU_GPU_CV\s+(\d+)mW/(\d+)mW", output_str)
+    if pom_cpu_gpu_cv_match:
+        metrics['power_cpu_gpu_cv_mw'] = int(pom_cpu_gpu_cv_match.group(1))
+
+
+    # Power VDD_SOC - Example: VDD_SOC 922/922
+    vdd_soc_match = re.search(r"VDD_SOC\s+(\d+)/(\d+)", output_str)
+    if vdd_soc_match:
+        metrics['power_soc_mw'] = int(vdd_soc_match.group(1))
+
+    # Power POM_5V_SOC (JetPack 5+)
+    pom_soc_match = re.search(r"POM_5V_SOC\s+(\d+)mW/(\d+)mW", output_str)
+    if pom_soc_match:
+        metrics['power_soc_mw'] = int(pom_soc_match.group(1))
+
+
+    # Temperatures - Example: GPU@28.5C, thermal@29.85C
+    # Prefer 'thermal' if available as it's often a summarized critical temperature
+    thermal_temp_match = re.search(r"thermal@([\d\.]+)C", output_str)
+    if thermal_temp_match:
+        metrics['temp_thermal_c'] = float(thermal_temp_match.group(1))
+
+    gpu_temp_match = re.search(r"GPU@([\d\.]+)C", output_str)
+    if gpu_temp_match:
+        metrics['temp_gpu_c'] = float(gpu_temp_match.group(1))
+
+    cpu_temp_match = re.search(r"(BCPU|MCPU|CPU)@([\d\.]+)C", output_str) # Matches BCPU@, MCPU@ or CPU@
+    if cpu_temp_match: # Takes the first CPU temperature it finds (BCPU, MCPU, or generic CPU)
+        metrics['temp_cpu_c'] = float(cpu_temp_match.group(2))
+
+    return metrics
+
+def get_tegrastats_snapshot():
+    global tegrastats_available # To modify the global flag
+    if not tegrastats_available: # If already marked unavailable, don't try again
+        return {}
+
+    try:
+        # Using --interval 100 and --duration 150 to get a quick single reliable output line.
+        # Timeout for communicate() is set to 1 second.
+        process = subprocess.Popen(['tegrastats', '--interval', '100', '--duration', '150'],
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stdout, stderr = process.communicate(timeout=1)
+
+        if process.returncode != 0:
+            # tegrastats might return non-zero if duration is very short, but still print output.
+            # So, we check stderr primarily for critical errors.
+            if stderr and "tegrastats: command not found" in stderr: # More specific check
+                print("Error: 'tegrastats' command not found. GPU/System monitoring will be disabled.")
+                tegrastats_available = False
+                return {}
+            elif stderr:
+                 print(f"Tegrastats stderr (return code {process.returncode}): {stderr.strip()}")
+
+
+        if stdout:
+            lines = stdout.strip().splitlines()
+            if lines:
+                # The last line is usually the full stats line, especially with short duration.
+                return parse_tegrastats_output(lines[-1])
+        return {} # No output
+    except subprocess.TimeoutExpired:
+        print("Tegrastats command timed out. GPU/System monitoring will be disabled for this cycle.")
+        return {} # Return empty if timed out
+    except FileNotFoundError:
+        print("Error: 'tegrastats' command not found. Is JetPack installed correctly? GPU/System monitoring disabled.")
+        tegrastats_available = False # Mark as unavailable permanently
+        return {}
+    except Exception as e:
+        print(f"Error reading tegrastats: {e}. GPU/System monitoring will be disabled for this cycle.")
+        return {} # Return empty on other errors
+
+# --- End Tegrastats Functions ---
 
     try:
         while True:
@@ -122,64 +191,86 @@ def main():
             if current_ram_mb is not None:
                 ram_readings_mb.append(current_ram_mb)
 
-            if nvml_active and gpu_handles: # Use the local nvml_active flag
-                for i, handle in enumerate(gpu_handles):
-                    try:
-                        metrics = get_gpu_metrics(handle)
-                        if 'gpu_util_percent' in metrics:
-                           gpu_metrics_data_list[i]['gpu_util_percent'].append(metrics['gpu_util_percent'])
-                        if 'gpu_mem_used_mb' in metrics:
-                           gpu_metrics_data_list[i]['gpu_mem_used_mb'].append(metrics['gpu_mem_used_mb'])
-                        if 'gpu_power_watts' in metrics and metrics['gpu_power_watts'] is not None:
-                           gpu_metrics_data_list[i]['gpu_power_watts'].append(metrics['gpu_power_watts'])
-                    except NVMLError as e:
-                        print(f"Warning: NVML error during GPU metric collection for GPU {i}: {e}")
-
+            # Get tegrastats metrics
+            tegra_metrics = get_tegrastats_snapshot()
+            if tegra_metrics:
+                if 'gpu_util_gr3d_freq_percent' in tegra_metrics:
+                    tegrastats_gpu_util_readings.append(tegra_metrics['gpu_util_gr3d_freq_percent'])
+                elif 'gpu_power_gr3d_mw' in tegra_metrics: # Alternative GPU metric
+                     # If we have power, maybe we prefer to log that instead of creating a new list
+                     # For now, let's assume we want the GR3D_FREQ % if available, else nothing for this list
+                     pass
+                if 'ram_system_used_mb' in tegra_metrics:
+                    tegrastats_ram_system_used_readings.append(tegra_metrics['ram_system_used_mb'])
+                if 'power_vdd_in_mw' in tegra_metrics:
+                    tegrastats_power_vdd_in_mw_readings.append(tegra_metrics['power_vdd_in_mw'])
+                if 'power_cpu_gpu_cv_mw' in tegra_metrics:
+                    tegrastats_power_cpu_gpu_cv_mw_readings.append(tegra_metrics['power_cpu_gpu_cv_mw'])
+                if 'power_soc_mw' in tegra_metrics:
+                    tegrastats_power_soc_mw_readings.append(tegra_metrics['power_soc_mw'])
+                if 'temp_gpu_c' in tegra_metrics:
+                    tegrastats_temp_gpu_c_readings.append(tegra_metrics['temp_gpu_c'])
+                if 'temp_cpu_c' in tegra_metrics: # Generic CPU temp from tegra
+                    tegrastats_temp_cpu_c_readings.append(tegra_metrics['temp_cpu_c'])
+                # Add appends for other parsed tegra metrics if needed
 
             time.sleep(1.0)
             monitoring_duration_seconds += 1
 
     except KeyboardInterrupt:
         print("Monitoring interrupted by user.")
-    finally:
-        if nvml_active: # Use the local nvml_active flag from main's scope
-             try:
-                nvmlShutdown()
-                print("NVML Shutdown successful.")
-             except NVMLError as e:
-                print(f"Error during nvmlShutdown: {e}")
+    # No finally block needed for pynvml anymore
 
     results = {}
+    # Process-specific metrics from psutil
     if cpu_readings:
-        results['cpu_avg_percent'] = sum(cpu_readings) / len(cpu_readings)
+        results['process_cpu_avg_percent'] = sum(cpu_readings) / len(cpu_readings)
     else:
-        results['cpu_avg_percent'] = 0
+        results['process_cpu_avg_percent'] = 0 # Default if no readings
 
     if ram_readings_mb:
-        results['ram_avg_mb'] = sum(ram_readings_mb) / len(ram_readings_mb)
+        results['process_ram_avg_mb'] = sum(ram_readings_mb) / len(ram_readings_mb)
     else:
-        results['ram_avg_mb'] = 0
+        results['process_ram_avg_mb'] = 0 # Default if no readings
 
-    # Initialize GPU results with None
-    results['gpus_avg_metrics'] = []
+    # Tegrastats metrics
+    if tegrastats_gpu_util_readings:
+        results['tegrastats_gpu_avg_util_percent'] = sum(tegrastats_gpu_util_readings) / len(tegrastats_gpu_util_readings)
+    else:
+        results['tegrastats_gpu_avg_util_percent'] = None # Or 0, if preferred for missing data
 
-    if nvml_active and gpu_handles: # Use the local nvml_active flag
-        for i in range(len(gpu_handles)):
-            gpu_avg_data = {
-                'gpu_index': i,
-                'avg_util_percent': None,
-                'avg_mem_mb': None,
-                'avg_power_watts': None
-            }
-            if gpu_metrics_data_list[i]['gpu_util_percent']:
-                gpu_avg_data['avg_util_percent'] = sum(gpu_metrics_data_list[i]['gpu_util_percent']) / len(gpu_metrics_data_list[i]['gpu_util_percent'])
-            if gpu_metrics_data_list[i]['gpu_mem_used_mb']:
-                gpu_avg_data['avg_mem_mb'] = sum(gpu_metrics_data_list[i]['gpu_mem_used_mb']) / len(gpu_metrics_data_list[i]['gpu_mem_used_mb'])
-            if gpu_metrics_data_list[i]['gpu_power_watts']: # Check if list is not empty
-                gpu_avg_data['avg_power_watts'] = sum(gpu_metrics_data_list[i]['gpu_power_watts']) / len(gpu_metrics_data_list[i]['gpu_power_watts'])
-            results['gpus_avg_metrics'].append(gpu_avg_data)
+    if tegrastats_ram_system_used_readings:
+        results['tegrastats_ram_system_avg_used_mb'] = sum(tegrastats_ram_system_used_readings) / len(tegrastats_ram_system_used_readings)
+    else:
+        results['tegrastats_ram_system_avg_used_mb'] = None
+
+    if tegrastats_power_vdd_in_mw_readings:
+        results['tegrastats_power_vdd_in_avg_mw'] = sum(tegrastats_power_vdd_in_mw_readings) / len(tegrastats_power_vdd_in_mw_readings)
+    else:
+        results['tegrastats_power_vdd_in_avg_mw'] = None
+
+    if tegrastats_power_cpu_gpu_cv_mw_readings:
+        results['tegrastats_power_cpu_gpu_cv_avg_mw'] = sum(tegrastats_power_cpu_gpu_cv_mw_readings) / len(tegrastats_power_cpu_gpu_cv_mw_readings)
+    else:
+        results['tegrastats_power_cpu_gpu_cv_avg_mw'] = None
+
+    if tegrastats_power_soc_mw_readings:
+        results['tegrastats_power_soc_avg_mw'] = sum(tegrastats_power_soc_mw_readings) / len(tegrastats_power_soc_mw_readings)
+    else:
+        results['tegrastats_power_soc_avg_mw'] = None
+
+    if tegrastats_temp_gpu_c_readings:
+        results['tegrastats_temp_gpu_avg_c'] = sum(tegrastats_temp_gpu_c_readings) / len(tegrastats_temp_gpu_c_readings)
+    else:
+        results['tegrastats_temp_gpu_avg_c'] = None
+
+    if tegrastats_temp_cpu_c_readings:
+        results['tegrastats_temp_cpu_avg_c'] = sum(tegrastats_temp_cpu_c_readings) / len(tegrastats_temp_cpu_c_readings)
+    else:
+        results['tegrastats_temp_cpu_avg_c'] = None
 
     results['monitoring_duration_seconds'] = monitoring_duration_seconds
+    results['tegrastats_was_available'] = tegrastats_available # Record if tegrastats worked
 
     output_filename = "resource_usage.json"
     try:
