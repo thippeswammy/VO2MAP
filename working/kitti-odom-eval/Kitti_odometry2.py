@@ -3,7 +3,6 @@
 import argparse
 import copy
 import os
-from glob import glob
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -268,7 +267,7 @@ class KittiEvalOdom:
         return [t_rel * 100, r_rel / np.pi * 180 * 100, ate, rpe_trans, rpe_rot * 180 / np.pi, trans_rmse, gt_dist,
                 pred_dist, drift]
 
-    def eval(self, gt_dir, result_dir, alignment=None, seqs=None, file_name_plot=''):
+    def eval(self, gt_dir, result_dir, alignment=None, seqs=None, eval_seqs="", file_name_plot=''):
         """Evaluate sequences and return metrics."""
         seq_list = [f"{i:02}" for i in range(11)]
         self.gt_dir = gt_dir
@@ -279,61 +278,58 @@ class KittiEvalOdom:
         os.makedirs(error_dir, exist_ok=True)
         os.makedirs(self.plot_path_dir, exist_ok=True)
         os.makedirs(self.plot_error_dir, exist_ok=True)
-        eval_seqs = seqs if seqs else [int(i[-6:-4]) for i in sorted(glob(os.path.join(result_dir, "*.txt"))) if
-                                       i[-6:-4] in seq_list]
+        # eval_seqs = seqs if seqs else [int(i[-6:-4]) for i in sorted(glob(os.path.join(result_dir, "*.txt"))) if
+        #                                i[-6:-4] in seq_list]
         with open(result_txt, 'w') as f:
-            for seq in eval_seqs:
-                file_name = f"{seq:02}.txt"
-                result_file = os.path.join(result_dir, file_name)
-                gt_file = os.path.join(gt_dir, file_name)
-                if not os.path.exists(result_file):
-                    print(f"Pose file {result_file} not found")
-                    continue
-                try:
-                    poses_result = self.load_poses_from_txt(result_file)
-                    poses_gt = self.load_poses_from_txt(gt_file)
-                    if len(poses_result) < len(poses_gt):
-                        print(f"Warning: {result_file} has {len(poses_result)} poses, ground truth has {len(poses_gt)}")
-                    idx_0 = sorted(poses_result.keys())[0]
-                    pred_0, gt_0 = poses_result[idx_0], poses_gt[idx_0]
+            file_name = f"{eval_seqs:02}.txt"
+            result_file = os.path.join(result_dir, file_name)
+            gt_file = os.path.join(gt_dir, f"{eval_seqs[:2]:02}.txt")
+            if not os.path.exists(result_file):
+                print(f"Pose file {result_file} not found")
+            try:
+                poses_result = self.load_poses_from_txt(result_file)
+                poses_gt = self.load_poses_from_txt(gt_file)
+                if len(poses_result) < len(poses_gt):
+                    print(f"Warning: {result_file} has {len(poses_result)} poses, ground truth has {len(poses_gt)}")
+                idx_0 = sorted(poses_result.keys())[0]
+                pred_0, gt_0 = poses_result[idx_0], poses_gt[idx_0]
+                for cnt in poses_result:
+                    poses_result[cnt] = np.linalg.inv(pred_0) @ poses_result[cnt]
+                    poses_gt[cnt] = np.linalg.inv(gt_0) @ poses_gt[cnt]
+                if alignment == "scale":
+                    poses_result = self.scale_optimization(poses_gt, poses_result)
+                elif alignment in ["scale_7dof", "7dof", "6dof"]:
+                    xyz_gt = np.array([poses_gt[cnt][:3, 3] for cnt in poses_result]).T
+                    xyz_result = np.array([poses_result[cnt][:3, 3] for cnt in poses_result]).T
+                    r, t, scale = umeyama_alignment(xyz_result, xyz_gt, alignment != "6dof")
+                    align_transformation = np.eye(4)
+                    align_transformation[:3, :3], align_transformation[:3, 3] = r, t
                     for cnt in poses_result:
-                        poses_result[cnt] = np.linalg.inv(pred_0) @ poses_result[cnt]
-                        poses_gt[cnt] = np.linalg.inv(gt_0) @ poses_gt[cnt]
-                    if alignment == "scale":
-                        poses_result = self.scale_optimization(poses_gt, poses_result)
-                    elif alignment in ["scale_7dof", "7dof", "6dof"]:
-                        xyz_gt = np.array([poses_gt[cnt][:3, 3] for cnt in poses_result]).T
-                        xyz_result = np.array([poses_result[cnt][:3, 3] for cnt in poses_result]).T
-                        r, t, scale = umeyama_alignment(xyz_result, xyz_gt, alignment != "6dof")
-                        align_transformation = np.eye(4)
-                        align_transformation[:3, :3], align_transformation[:3, 3] = r, t
-                        for cnt in poses_result:
-                            poses_result[cnt][:3, 3] *= scale
-                            if alignment in ["7dof", "6dof"]:
-                                poses_result[cnt] = align_transformation @ poses_result[cnt]
-                    seq_err = self.calc_sequence_errors(poses_gt, poses_result)
-                    self.save_sequence_errors(seq_err, os.path.join(error_dir, file_name))
-                    t_rel, r_rel = self.compute_overall_err(seq_err)
-                    ate = self.compute_ATE(poses_gt, poses_result)
-                    trans_rmse = self.compute_translational_rmse(poses_gt, poses_result)
-                    rpe_trans, rpe_rot = self.compute_RPE(poses_gt, poses_result)
-                    gt_dist = self.compute_total_distance(poses_gt)
-                    pred_dist = self.compute_total_distance(poses_result)
-                    drift = self.compute_drift(poses_gt, poses_result)
-                    # Extract 3D coordinates for plotting
-                    pos_result = np.array([poses_result[k][:3, 3] for k in sorted(poses_result.keys())])
-                    pos_gt = np.array([poses_gt[k][:3, 3] for k in sorted(poses_gt.keys()) if k in poses_result])
-                    self.plot_trajectory(poses_gt, poses_result, seq, pos_gt, pos_result, file_name_plot)
-                    self.plot_error(self.compute_segment_error(seq_err), seq)
-                    metrics = self.write_result(f, seq,
-                                                [t_rel, r_rel, ate, rpe_trans, rpe_rot, trans_rmse, gt_dist, pred_dist,
-                                                 drift])
-                    return metrics
-                except Exception as e:
-                    print(f"Error processing sequence {seq}: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    continue
+                        poses_result[cnt][:3, 3] *= scale
+                        if alignment in ["7dof", "6dof"]:
+                            poses_result[cnt] = align_transformation @ poses_result[cnt]
+                seq_err = self.calc_sequence_errors(poses_gt, poses_result)
+                self.save_sequence_errors(seq_err, os.path.join(error_dir, file_name))
+                t_rel, r_rel = self.compute_overall_err(seq_err)
+                ate = self.compute_ATE(poses_gt, poses_result)
+                trans_rmse = self.compute_translational_rmse(poses_gt, poses_result)
+                rpe_trans, rpe_rot = self.compute_RPE(poses_gt, poses_result)
+                gt_dist = self.compute_total_distance(poses_gt)
+                pred_dist = self.compute_total_distance(poses_result)
+                drift = self.compute_drift(poses_gt, poses_result)
+                # Extract 3D coordinates for plotting
+                pos_result = np.array([poses_result[k][:3, 3] for k in sorted(poses_result.keys())])
+                pos_gt = np.array([poses_gt[k][:3, 3] for k in sorted(poses_gt.keys()) if k in poses_result])
+                self.plot_trajectory(poses_gt, poses_result, eval_seqs, pos_gt, pos_result, file_name_plot)
+                self.plot_error(self.compute_segment_error(seq_err), eval_seqs)
+                metrics = self.write_result(f, eval_seqs,
+                                            [t_rel, r_rel, ate, rpe_trans, rpe_rot, trans_rmse, gt_dist, pred_dist,
+                                             drift])
+                return metrics
+            except Exception as e:
+                print(f"Error processing sequence {eval_seqs}: {e}")
+                import traceback
+                traceback.print_exc()
         return []
 
     @staticmethod
@@ -391,7 +387,7 @@ class KittiEvalOdom:
         plt.close()
 
 
-def get_folders_in_dir(dir_path='./result'):
+def get_folders_in_dir(dir_path='./vo_data'):
     """Get a list of folders in directory."""
     return [os.path.join(dir_path, item) for item in os.listdir(dir_path) if
             os.path.isdir(os.path.join(dir_path, item))]
@@ -403,23 +399,27 @@ if __name__ == "__main__":
     headers = ["Method", "Alignment", "t_rel (%)", "r_rel (deg/100m)", "ATE (m)", "Trans RMSE (m)",
                "RPE trans (m)", "RPE rot (deg)", "GT Dist (m)", "Pred Dist (m)", "Drift (m)"]
     results_table = []
-    alignments = ['scale', 'scale_7dof', '7dof', '6dof', 'Direct']
-    seqs = [0, 9]  # Default sequence list, adjustable via args
+    alignments = ['Direct']
+    base_seqs = [9]  # Base sequence numbers
 
-    parser = argparse.ArgumentParser(description='KITTI VO evaluation')
+    parser = argparse.ArgumentParser(description='KITTI VO evaluation with repetitions')
     parser.add_argument('--result', type=str, default='./vo_data', help='Root directory of result folders')
     parser.add_argument('--gt_dir', type=str, default='dataset/kitti_odom/gt_poses/',
                         help='Ground truth poses directory')
-    parser.add_argument('--seqs', nargs="+", type=int, default=seqs, help='List of sequence numbers to evaluate')
+    parser.add_argument('--seqs', nargs="+", type=int, default=base_seqs,
+                        help='List of base sequence numbers to evaluate')
     parser.add_argument('--output_dir', type=str, default='plots', help='Directory for output plots and Excel')
     args = parser.parse_args([])
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
-
+    # Expand sequences to include repetitions (e.g., 1_1, 1_2, 1_3)
+    seq_repeats = [(f"{seq:02}", i) for seq in args.seqs for i in range(1, 2)]
+    print(seq_repeats)
     for folder in dir_list:
         for align in alignments:
-            for seq in args.seqs:
+            for seq, repeat in seq_repeats:
+                seq_str = f"{seq}_{repeat}"
                 parser_inner = argparse.ArgumentParser(description='KITTI VO evaluation')
                 parser_inner.add_argument('--result', type=str, default=folder)
                 parser_inner.add_argument('--align', type=str, default=align)
@@ -432,122 +432,126 @@ if __name__ == "__main__":
                         args_inner.result,
                         alignment=args_inner.align,
                         seqs=args_inner.seqs,
-                        file_name_plot=f"{align}_seq_{seq:02d}_3D_Plot.png"
+                        eval_seqs=seq_str,
+                        file_name_plot=f"{align}_seq_{seq_str}_3D_Plot.png"
                     )
                     if metrics:
                         results_table.append([
-                            os.path.basename(folder),
-                            args_inner.align,
-                            f"{metrics[0]:.3f}",
-                            f"{metrics[1]:.3f}",
-                            f"{metrics[2]:.3f}",
-                            f"{metrics[5]:.3f}",
-                            f"{metrics[3]:.3f}",
-                            f"{metrics[4]:.3f}",
-                            f"{metrics[6]:.3f}",
-                            f"{metrics[7]:.3f}",
-                            f"{metrics[8]:.3f}"
-                        ])
+                                                 os.path.basename(folder),
+                                                 args_inner.align,
+                                                 f"{metrics[0]:.3f}",
+                                                 f"{metrics[1]:.3f}",
+                                                 f"{metrics[2]:.3f}",
+                                                 f"{metrics[5]:.3f}",
+                                                 f"{metrics[3]:.3f}",
+                                                 f"{metrics[4]:.3f}",
+                                                 f"{metrics[6]:.3f}",
+                                                 f"{metrics[7]:.3f}",
+                                                 f"{metrics[8]:.3f}"
+                                             ] + [seq_str])  # Append seq_repeat as an extra column for tracking
                 except Exception as e:
-                    print(f"Error processing {folder} with alignment {align} for seq {seq}: {e}")
+                    print(f"Error processing {folder} with alignment {align} for seq {seq_str}: {e}")
 
-    print("\nEvaluation Results:")
-    print(tabulate(results_table, headers=headers, tablefmt="grid"))
-    df = pd.DataFrame(results_table, columns=headers)
-    excel_file = output_dir / "vo_evaluation_results.xlsx"
+    # Aggregate results by base sequence and alignment, averaging over repetitions
+    averaged_results = []
+    for folder in set(row[0] for row in results_table):
+        for align in alignments:
+            for seq in args.seqs:
+                seq_data = [row for row in results_table if
+                            row[0] == folder and row[1] == align and row[11].startswith(f"{seq}_")]
+                if seq_data:
+                    avg_metrics = [float(row[i]) for i in range(2, 11) for row in seq_data]
+                    avg_metrics = [sum(avg_metrics[i::9]) / 3 for i in range(9)]  # Average over 3 repetitions
+                    averaged_results.append([
+                        folder,
+                        align,
+                        f"{avg_metrics[0]:.3f}",
+                        f"{avg_metrics[1]:.3f}",
+                        f"{avg_metrics[2]:.3f}",
+                        f"{avg_metrics[3]:.3f}",
+                        f"{avg_metrics[4]:.3f}",
+                        f"{avg_metrics[5]:.3f}",
+                        f"{avg_metrics[6]:.3f}",
+                        f"{avg_metrics[7]:.3f}",
+                        f"{avg_metrics[8]:.3f}"
+                    ])
+
+    print("\nAveraged Evaluation Results:")
+    print(tabulate(averaged_results, headers=headers, tablefmt="grid"))
+    df = pd.DataFrame(averaged_results, columns=headers)
+    excel_file = output_dir / "vo_evaluation_results_averaged.xlsx"
     df.to_excel(excel_file, index=False)
-    print(f"\nResults saved to: {excel_file}")
+    print(f"\nAveraged results saved to: {excel_file}")
 
-    methods = sorted(set(row[0] for row in results_table))
-    labels = [f"{m} ({a})" for m in methods for a in alignments for _ in args.seqs]
+    methods = sorted(set(row[0] for row in averaged_results))
+    labels = [f"{m} ({a})" for m in methods for a in alignments]
     data = {metric: [] for metric in headers[2:]}
     for m in methods:
         for a in alignments:
-            for seq in args.seqs:
-                found = False
-                for row in results_table:
-                    if row[0] == m and row[1] == a and any(seq in args.seqs for _ in row):  # Simplified match
-                        for i, metric in enumerate(headers[2:], 2):
-                            data[metric].append(float(row[i]))
-                        found = True
-                        break
-                if not found:
-                    for metric in headers[2:]:
-                        data[metric].append(0)
+            for row in averaged_results:
+                if row[0] == m and row[1] == a:
+                    for i, metric in enumerate(headers[2:], 2):
+                        data[metric].append(float(row[i]))
+                    break
+            else:
+                for metric in headers[2:]:
+                    data[metric].append(0)
 
     figsize = (20, 8)
-    bar_width = 0.1 / len(args.seqs) if args.seqs else 0.1
+    bar_width = 0.1
     index = np.arange(len(labels))
 
     # Plot 1: t_rel and r_rel
     plt.figure(figsize=figsize)
-    for i, seq in enumerate(args.seqs):
-        offset = (i - (len(args.seqs) - 1) / 2) * bar_width
-        plt.bar(index + offset, [data["t_rel (%)"][j] for j in range(i, len(labels), len(args.seqs))],
-                bar_width, label=f"t_rel (%) Seq {seq}", alpha=0.8)
+    plt.bar(index - bar_width / 2, data["t_rel (%)"], bar_width, label="t_rel (%)", color="dodgerblue")
+    plt.bar(index + bar_width / 2, data["r_rel (deg/100m)"], bar_width, label="r_rel (deg/100m)", color="tomato")
     plt.xlabel("Method (Alignment)")
     plt.ylabel("Error")
-    plt.title("Relative Translation Errors Across Sequences")
+    plt.title("Averaged Relative Translation and Rotation Errors")
     plt.xticks(index, labels, rotation=90)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(output_dir / "relative_errors.png")
+    plt.savefig(output_dir / "averaged_relative_errors.png")
     plt.close()
 
     # Plot 2: ATE and Trans RMSE
     plt.figure(figsize=figsize)
-    for i, seq in enumerate(args.seqs):
-        offset = (i - (len(args.seqs) - 1) / 2) * bar_width
-        plt.bar(index + offset, [data["ATE (m)"][j] for j in range(i, len(labels), len(args.seqs))],
-                bar_width, label=f"ATE (m) Seq {seq}", alpha=0.8)
-        plt.bar(index + offset + bar_width / 2,
-                [data["Trans RMSE (m)"][j] for j in range(i, len(labels), len(args.seqs))],
-                bar_width, label=f"Trans RMSE (m) Seq {seq}", alpha=0.8)
+    plt.bar(index - bar_width / 2, data["ATE (m)"], bar_width, label="ATE (m)", color="teal")
+    plt.bar(index + bar_width / 2, data["Trans RMSE (m)"], bar_width, label="Trans RMSE (m)", color="purple")
     plt.xlabel("Method (Alignment)")
     plt.ylabel("Error (m)")
-    plt.title("ATE and Translational RMSE Across Sequences")
+    plt.title("Averaged ATE and Translational RMSE")
     plt.xticks(index, labels, rotation=90)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(output_dir / "ate_rmse.png")
+    plt.savefig(output_dir / "averaged_ate_rmse.png")
     plt.close()
 
     # Plot 3: RPE trans and rot
     plt.figure(figsize=figsize)
-    for i, seq in enumerate(args.seqs):
-        offset = (i - (len(args.seqs) - 1) / 2) * bar_width
-        plt.bar(index + offset, [data["RPE trans (m)"][j] for j in range(i, len(labels), len(args.seqs))],
-                bar_width, label=f"RPE trans (m) Seq {seq}", alpha=0.8)
-        plt.bar(index + offset + bar_width / 2,
-                [data["RPE rot (deg)"][j] for j in range(i, len(labels), len(args.seqs))],
-                bar_width, label=f"RPE rot (deg) Seq {seq}", alpha=0.8)
+    plt.bar(index - bar_width / 2, data["RPE trans (m)"], bar_width, label="RPE trans (m)", color="orange")
+    plt.bar(index + bar_width / 2, data["RPE rot (deg)"], bar_width, label="RPE rot (deg)", color="green")
     plt.xlabel("Method (Alignment)")
     plt.ylabel("RPE")
-    plt.title("Relative Pose Error Across Sequences")
+    plt.title("Averaged Relative Pose Error")
     plt.xticks(index, labels, rotation=90)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(output_dir / "rpe.png")
+    plt.savefig(output_dir / "averaged_rpe.png")
     plt.close()
 
     # Plot 4: Distances and Drift
     plt.figure(figsize=figsize)
-    for i, seq in enumerate(args.seqs):
-        offset = (i - (len(args.seqs) - 1) / 2) * bar_width
-        plt.bar(index + offset, [data["GT Dist (m)"][j] for j in range(i, len(labels), len(args.seqs))],
-                bar_width, label=f"GT Dist (m) Seq {seq}", alpha=0.8)
-        plt.bar(index + offset + bar_width / 2,
-                [data["Pred Dist (m)"][j] for j in range(i, len(labels), len(args.seqs))],
-                bar_width, label=f"Pred Dist (m) Seq {seq}", alpha=0.8)
-        plt.bar(index + offset + bar_width, [data["Drift (m)"][j] for j in range(i, len(labels), len(args.seqs))],
-                bar_width, label=f"Drift (m) Seq {seq}", alpha=0.8)
+    plt.bar(index - bar_width * 1.5, data["GT Dist (m)"], bar_width, label="GT Dist (m)", color="blue")
+    plt.bar(index - bar_width / 2, data["Pred Dist (m)"], bar_width, label="Pred Dist (m)", color="cyan")
+    plt.bar(index + bar_width / 2, data["Drift (m)"], bar_width, label="Drift (m)", color="purple")
     plt.xlabel("Method (Alignment)")
     plt.ylabel("Distance/Drift (m)")
-    plt.title("Distances and Drift Across Sequences")
+    plt.title("Averaged Distances and Drift")
     plt.xticks(index, labels, rotation=90)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(output_dir / "dist_drift.png")
+    plt.savefig(output_dir / "averaged_dist_drift.png")
     plt.close()
 
     print(f"Plots saved in '{args.output_dir}' directory.")
