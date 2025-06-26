@@ -342,7 +342,6 @@ class KittiEvalOdom:
             except Exception as e:
                 print(f"Error processing sequence {eval_seqs}: {e}")
                 return []
-        return []
 
     @staticmethod
     def save_sequence_errors(err, file_name):
@@ -396,13 +395,14 @@ class KittiEvalOdom:
 
 def get_folders_in_dir(dir_path='./vo_data'):
     """Get a list of folders in directory."""
+    dir_path = os.path.join(dir_path, 'eval_matrix')
     return [os.path.join(dir_path, item) for item in os.listdir(dir_path) if
             os.path.isdir(os.path.join(dir_path, item))]
 
 
 if __name__ == "__main__":
-    dir_list = get_folders_in_dir('./result')
-    print("Detected result folders:", dir_list)
+    dir_list = get_folders_in_dir('../../StoringResults')
+    print("Detected method folders:", dir_list)
     eval_headers = ["Method", "Alignment", "t_rel (%)", "r_rel (deg/100m)", "ATE (m)", "Trans RMSE (m)",
                     "RPE trans (m)", "RPE rot (deg)", "GT Dist (m)", "Pred Dist (m)", "Drift (m)"]
     comp_headers = ["Method", "Alignment", "Total Time (s)", "Frames Processed", "FPS", "Avg CPU (%)",
@@ -410,10 +410,10 @@ if __name__ == "__main__":
     results_table = []
     comp_table = []
     alignments = ['Direct']
-    base_seqs = [0, 9]  # Base sequence numbers
+    base_seqs = [1, 9]  # Base sequence numbers
 
     parser = argparse.ArgumentParser(description='KITTI VO evaluation with repetitions and computational metrics')
-    parser.add_argument('--result', type=str, default='./result', help='Root directory of result folders')
+    parser.add_argument('--result', type=str, default='../../StoringResults', help='Root directory of result folders')
     parser.add_argument('--gt_dir', type=str, default='dataset/kitti_odom/gt_poses/',
                         help='Ground truth poses directory')
     parser.add_argument('--seqs', nargs="+", type=int, default=base_seqs,
@@ -428,13 +428,19 @@ if __name__ == "__main__":
     print("Sequence repetitions:", seq_repeats)
 
     for folder in dir_list:
+        method_name = os.path.basename(folder)
+        eval_base_path = os.path.join(args.result, 'eval_matrix', method_name)
+        comp_base_path = os.path.join(args.result, 'Computational_matrix', method_name)
+        if not os.path.exists(eval_base_path) or not os.path.exists(comp_base_path):
+            print(f"Missing eval or computational folder for {method_name}")
+            continue
         for align in alignments:
             for seq, repeat in seq_repeats:
                 seq_str = f"{seq}_{repeat}"
-                eval_path = os.path.join(folder.replace('result', 'eval_matrix'), f"{seq_str}.txt")
-                comp_path = os.path.join(folder.replace('result', 'Computational_matrix'), f"{seq_str}.txt")
+                eval_path = os.path.join(eval_base_path, f"{seq_str}.txt")
+                comp_path = os.path.join(comp_base_path, f"{seq_str}.txt")
                 if not os.path.exists(eval_path) or not os.path.exists(comp_path):
-                    print(f"Missing files for {seq_str} in {folder}")
+                    print(f"Missing files for {seq_str} in {method_name}")
                     continue
                 parser_inner = argparse.ArgumentParser(description='KITTI VO evaluation')
                 parser_inner.add_argument('--result', type=str, default=eval_path)
@@ -454,7 +460,7 @@ if __name__ == "__main__":
                     comp_metrics = parse_computational_metrics(comp_path)
                     if eval_metrics:
                         results_table.append([
-                                                 os.path.basename(folder),
+                                                 method_name,
                                                  args_inner.align,
                                                  f"{eval_metrics[0]:.3f}",
                                                  f"{eval_metrics[1]:.3f}",
@@ -468,7 +474,7 @@ if __name__ == "__main__":
                                              ] + [seq_str])
                     if comp_metrics['frames_processed'] > 0:
                         comp_table.append([
-                                              os.path.basename(folder),
+                                              method_name,
                                               align,
                                               f"{comp_metrics['total_time']:.3f}",
                                               f"{comp_metrics['frames_processed']}",
@@ -481,7 +487,7 @@ if __name__ == "__main__":
                                               f"{comp_metrics['avg_ram']:.3f}"
                                           ] + [seq_str])
                 except Exception as e:
-                    print(f"Error processing {folder} with alignment {align} for seq {seq_str}: {e}")
+                    print(f"Error processing {method_name} with alignment {align} for seq {seq_str}: {e}")
 
     # Display detailed results for each repetition
     print("\nDetailed Evaluation Results for Each Repetition:")
@@ -528,7 +534,7 @@ if __name__ == "__main__":
                         ])
                         averaged_comp_results.append([
                             folder, align,
-                            f"{avg_comp_metrics[0]:.3f}", f"{avg_comp_metrics[1]}", f"{avg_comp_metrics[2]:.3f}",
+                            f"{avg_comp_metrics[0]:.3f}", f"{int(avg_comp_metrics[1])}", f"{avg_comp_metrics[2]:.3f}",
                             f"{avg_comp_metrics[3]:.3f}", f"{avg_comp_metrics[4]:.3f}", f"{avg_comp_metrics[5]:.3f}",
                             f"{avg_comp_metrics[6]:.3f}", f"{avg_comp_metrics[7]:.3f}", f"{avg_comp_metrics[8]:.3f}",
                             seq_str
