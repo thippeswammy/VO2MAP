@@ -424,7 +424,7 @@ if __name__ == "__main__":
 
     results_table = []
 
-    alignments = ['Direct']
+    alignments = ['scale', 'scale_7dof', '6dof', '7dof']
     base_seqs = [1, 9]  # Base sequence numbers
 
     parser = argparse.ArgumentParser(description='KITTI VO evaluation with repetitions and computational metrics')
