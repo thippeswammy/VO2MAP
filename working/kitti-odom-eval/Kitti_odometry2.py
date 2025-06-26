@@ -40,33 +40,47 @@ def umeyama_alignment(x, y, with_scale=False):
     return r, t, c
 
 
+import ast
+
+
 def parse_computational_metrics(file_path):
-    """Parse computational metrics from txt file."""
-    metrics = {'total_time': 0.0, 'frames_processed': 0, 'fps': 0.0,
-               'avg_cpu': 0.0, 'avg_cpu_overall': 0.0, 'avg_gpu': 0.0,
-               'avg_gpu_mem': 0.0, 'avg_gpu_power': 0.0, 'avg_ram': 0.0,
-               'monitor_duration': 0.0}
+    """Parse computational metrics from txt file with robust error handling."""
+    metrics = {
+        'total_time': 0.0, 'frames_processed': 0, 'fps': 0.0,
+        'avg_cpu': 0.0, 'avg_cpu_overall': 0.0, 'avg_gpu': 0.0,
+        'avg_gpu_mem': 0.0, 'avg_gpu_power': 0.0, 'avg_ram': 0.0,
+        'monitor_duration': 0.0
+    }
     try:
         with open(file_path, 'r') as f:
             lines = f.readlines()
-            for line in lines:
-                line = line.strip()
-                if 'Total Time' in line:
-                    metrics['total_time'] = float(line.split('=')[1].split()[0])
-                elif 'Frames processed' in line:
-                    metrics['frames_processed'] = int(line.split('=')[1].split()[0])
-                elif 'FPS' in line:
-                    metrics['fps'] = float(line.split('=')[1].split()[0])
-                elif '[AVERAGE USAGE]' in line:
-                    for subline in lines[lines.index(line) + 1:]:
-                        if '}' in subline:
-                            break
-                        key, value = subline.split(':')
-                        key = key.strip().replace("'", "").replace(" ", "_")
-                        if key in metrics:
-                            metrics[key] = float(value.split(',')[0].strip())
+            for i, line in enumerate(lines):
+                stripped = line.strip()
+                if 'Total Time' in stripped:
+                    metrics['total_time'] = float(stripped.split('=')[1].split()[0])
+                elif 'Frames processed' in stripped:
+                    metrics['frames_processed'] = int(stripped.split('=')[1].split()[0])
+                elif 'FPS' in stripped:
+                    metrics['fps'] = float(stripped.split('=')[1].split()[0])
+                elif '[AVERAGE USAGE]' in stripped:
+                    # Expect the dictionary to be in the next line(s)
+                    dict_lines = []
+                    for l in lines[i + 1:]:
+                        if '[RESULT]' in l:
+                            break  # stop at result block
+                        dict_lines.append(l.strip())
+                    try:
+                        usage_dict = ast.literal_eval(''.join(dict_lines))
+                        for key in usage_dict:
+                            mapped_key = key.strip().lower()
+                            if mapped_key in metrics:
+                                metrics[mapped_key] = float(usage_dict[key])
+                            elif mapped_key == 'monitor_duration_seconds':
+                                metrics['monitor_duration'] = float(usage_dict[key])
+                    except Exception as e:
+                        print(f"Error parsing [AVERAGE USAGE] block in {file_path}: {e}")
     except Exception as e:
-        print(f"Error parsing computational metrics from {file_path}: {e}")
+        print(f"Error reading {file_path}: {e}")
     return metrics
 
 
@@ -342,7 +356,6 @@ class KittiEvalOdom:
             except Exception as e:
                 print(f"Error processing sequence {eval_seqs}: {e}")
                 return []
-        return []
 
     @staticmethod
     def save_sequence_errors(err, file_name):
@@ -394,15 +407,15 @@ class KittiEvalOdom:
         plt.close()
 
 
-def get_folders_in_dir(dir_path='./vo_data'):
+def get_folders_in_dir(dir_path):
     """Get a list of folders in directory."""
     return [os.path.join(dir_path, item) for item in os.listdir(dir_path) if
             os.path.isdir(os.path.join(dir_path, item))]
 
 
 if __name__ == "__main__":
-    dir_list = get_folders_in_dir('./result')
-    print("Detected result folders:", dir_list)
+    # Define fixed method names
+    methods = ['optical_flow_m1', 'feature_based_m2']
     eval_headers = ["Method", "Alignment", "t_rel (%)", "r_rel (deg/100m)", "ATE (m)", "Trans RMSE (m)",
                     "RPE trans (m)", "RPE rot (deg)", "GT Dist (m)", "Pred Dist (m)", "Drift (m)"]
     comp_headers = ["Method", "Alignment", "Total Time (s)", "Frames Processed", "FPS", "Avg CPU (%)",
@@ -410,10 +423,10 @@ if __name__ == "__main__":
     results_table = []
     comp_table = []
     alignments = ['Direct']
-    base_seqs = [0, 9]  # Base sequence numbers
+    base_seqs = [1, 9]
 
     parser = argparse.ArgumentParser(description='KITTI VO evaluation with repetitions and computational metrics')
-    parser.add_argument('--result', type=str, default='./result', help='Root directory of result folders')
+    parser.add_argument('--result', type=str, default='../../StoringResults', help='Root directory of result folders')
     parser.add_argument('--gt_dir', type=str, default='dataset/kitti_odom/gt_poses/',
                         help='Ground truth poses directory')
     parser.add_argument('--seqs', nargs="+", type=int, default=base_seqs,
@@ -427,14 +440,19 @@ if __name__ == "__main__":
     seq_repeats = [(f"{seq:02}", i) for seq in args.seqs for i in range(1, 4)]
     print("Sequence repetitions:", seq_repeats)
 
-    for folder in dir_list:
+    for method in methods:
+        eval_base_path = os.path.join(args.result, 'eval_matrix', method)
+        comp_base_path = os.path.join(args.result, 'Computational_matrix', method)
+        if not os.path.exists(eval_base_path) or not os.path.exists(comp_base_path):
+            print(f"Missing eval or computational folder for {method}")
+            continue
         for align in alignments:
             for seq, repeat in seq_repeats:
                 seq_str = f"{seq}_{repeat}"
-                eval_path = os.path.join(folder.replace('result', 'eval_matrix'), f"{seq_str}.txt")
-                comp_path = os.path.join(folder.replace('result', 'Computational_matrix'), f"{seq_str}.txt")
+                eval_path = os.path.join(eval_base_path, f"{seq_str}.txt")
+                comp_path = os.path.join(comp_base_path, f"{seq_str}.txt")
                 if not os.path.exists(eval_path) or not os.path.exists(comp_path):
-                    print(f"Missing files for {seq_str} in {folder}")
+                    print(f"Missing files for {seq_str} in {method}")
                     continue
                 parser_inner = argparse.ArgumentParser(description='KITTI VO evaluation')
                 parser_inner.add_argument('--result', type=str, default=eval_path)
@@ -454,7 +472,7 @@ if __name__ == "__main__":
                     comp_metrics = parse_computational_metrics(comp_path)
                     if eval_metrics:
                         results_table.append([
-                                                 os.path.basename(folder),
+                                                 method,
                                                  args_inner.align,
                                                  f"{eval_metrics[0]:.3f}",
                                                  f"{eval_metrics[1]:.3f}",
@@ -468,7 +486,7 @@ if __name__ == "__main__":
                                              ] + [seq_str])
                     if comp_metrics['frames_processed'] > 0:
                         comp_table.append([
-                                              os.path.basename(folder),
+                                              method,
                                               align,
                                               f"{comp_metrics['total_time']:.3f}",
                                               f"{comp_metrics['frames_processed']}",
@@ -481,7 +499,7 @@ if __name__ == "__main__":
                                               f"{comp_metrics['avg_ram']:.3f}"
                                           ] + [seq_str])
                 except Exception as e:
-                    print(f"Error processing {folder} with alignment {align} for seq {seq_str}: {e}")
+                    print(f"Error processing {method} with alignment {align} for seq {seq_str}: {e}")
 
     # Display detailed results for each repetition
     print("\nDetailed Evaluation Results for Each Repetition:")
@@ -501,14 +519,14 @@ if __name__ == "__main__":
     # Aggregate results by base sequence and alignment
     averaged_eval_results = []
     averaged_comp_results = []
-    for folder in set(row[0] for row in results_table):
+    for method in methods:
         for align in alignments:
             for seq in args.seqs:
                 seq_str = f"{seq:02}"
                 eval_data = [row for row in results_table if
-                             row[0] == folder and row[1] == align and row[11].startswith(seq_str + "_")]
+                             row[0] == method and row[1] == align and row[11].startswith(seq_str + "_")]
                 comp_data = [row for row in comp_table if
-                             row[0] == folder and row[1] == align and row[11].startswith(seq_str + "_")]
+                             row[0] == method and row[1] == align and row[11].startswith(seq_str + "_")]
                 if eval_data and comp_data:
                     expected_repeats = [f"{seq_str}_{i}" for i in range(1, 4)]
                     eval_repeats = [row[11] for row in eval_data]
@@ -520,21 +538,21 @@ if __name__ == "__main__":
                         avg_eval_metrics = [sum(col) / 3 for col in zip(*eval_metrics_list)]
                         avg_comp_metrics = [sum(col) / 3 for col in zip(*comp_metrics_list)]
                         averaged_eval_results.append([
-                            folder, align,
+                            method, align,
                             f"{avg_eval_metrics[0]:.3f}", f"{avg_eval_metrics[1]:.3f}", f"{avg_eval_metrics[2]:.3f}",
                             f"{avg_eval_metrics[3]:.3f}", f"{avg_eval_metrics[4]:.3f}", f"{avg_eval_metrics[5]:.3f}",
                             f"{avg_eval_metrics[6]:.3f}", f"{avg_eval_metrics[7]:.3f}", f"{avg_eval_metrics[8]:.3f}",
                             seq_str
                         ])
                         averaged_comp_results.append([
-                            folder, align,
-                            f"{avg_comp_metrics[0]:.3f}", f"{avg_comp_metrics[1]}", f"{avg_comp_metrics[2]:.3f}",
+                            method, align,
+                            f"{avg_comp_metrics[0]:.3f}", f"{int(avg_comp_metrics[1])}", f"{avg_comp_metrics[2]:.3f}",
                             f"{avg_comp_metrics[3]:.3f}", f"{avg_comp_metrics[4]:.3f}", f"{avg_comp_metrics[5]:.3f}",
                             f"{avg_comp_metrics[6]:.3f}", f"{avg_comp_metrics[7]:.3f}", f"{avg_comp_metrics[8]:.3f}",
                             seq_str
                         ])
                     else:
-                        print(f"Warning: Incomplete repetitions for seq {seq_str} in {folder} with {align}")
+                        print(f"Warning: Incomplete repetitions for seq {seq_str} in {method} with {align}")
 
     print("\nAveraged Evaluation Results:")
     print(tabulate(averaged_eval_results, headers=eval_headers + ["Base Sequence"], tablefmt="grid"))

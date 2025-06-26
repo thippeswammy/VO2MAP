@@ -8,6 +8,8 @@ videos/
 /.venv
 /data/
 /notUsefull/
+StoringResults/*.png
+StoringResults/*.html
 working/kitti-odom-eval/result
 working/kitti-odom-eval/plots
 working/kitti-odom-eval/.*png

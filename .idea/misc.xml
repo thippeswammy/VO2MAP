@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.10 (ZED2i)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.8 (VO2MAP)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10 (Visual-odometry-tutorial)" project-jdk-type="Python SDK" />
 </project>
