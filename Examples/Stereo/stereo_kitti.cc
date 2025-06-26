@@ -24,6 +24,11 @@
 #include<fstream>
 #include<iomanip>
 #include<chrono>
+#include<vector> // Added for vector
+#include<string> // Added for string
+#include<cstdlib> // For system()
+#include<cstdio>  // For remove()
+#include<unistd.h> // For getpid() and usleep()
 
 #include<opencv2/core/core.hpp>
 
@@ -33,6 +38,25 @@ using namespace std;
 
 void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
                 vector<string> &vstrImageRight, vector<double> &vTimestamps);
+
+// Function to read and print simple JSON content
+// This is a very basic parser. Assumes flat JSON or simple nested for printing.
+void PrintJsonReport(const string& filename) {
+    ifstream json_file(filename);
+    if (json_file.is_open()) {
+        cout << "--- Resource Usage Statistics (from " << filename << ") ---" << endl;
+        string line;
+        while (getline(json_file, line)) {
+            cout << line << endl;
+        }
+        json_file.close();
+        if (remove(filename.c_str()) != 0) {
+            cerr << "Error deleting " << filename << endl;
+        }
+    } else {
+        cerr << "Warning: Could not open " << filename << " to read statistics." << endl;
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -52,6 +76,20 @@ int main(int argc, char **argv)
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+
+    // --- Launch Resource Monitor ---
+    pid_t current_pid = getpid();
+    char command[256];
+    // Assuming resource_monitor.py is in the same directory as the executable or in PATH.
+    // Adjust path to resource_monitor.py if it's located elsewhere.
+    sprintf(command, "python3 resource_monitor.py %d &", current_pid);
+    cout << "Launching resource monitor for PID " << current_pid << " with command: " << command << endl;
+    int system_ret = system(command);
+    if (system_ret != 0) {
+        cerr << "Error: Failed to launch resource_monitor.py. Return code: " << system_ret << endl;
+        // Depending on requirements, you might want to exit or continue without monitoring.
+    }
+    // --- End Launch Resource Monitor ---
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -107,8 +145,31 @@ int main(int argc, char **argv)
             usleep((T-ttrack)*1e6);
     }
 
+    // --- Signal Resource Monitor to Stop ---
+    cout << "Signaling resource monitor to stop..." << endl;
+    ofstream stop_file("stop.txt");
+    if (stop_file.is_open()) {
+        stop_file.close(); // Just creating the file is enough
+    } else {
+        cerr << "Error: Unable to create stop.txt to signal monitor." << endl;
+    }
+    // --- End Signal Resource Monitor ---
+
     // Stop all threads
     SLAM.Shutdown();
+
+    // --- Wait for and Read Monitor Report ---
+    cout << "Waiting for resource monitor to finalize and write report..." << endl;
+    // Simple wait - could be improved with file existence check in a loop
+    usleep(2000000); // Wait for 2 seconds (adjust as needed, Python script might take a moment)
+
+    PrintJsonReport("resource_usage.json");
+    // stop.txt is typically removed by the Python script if it needs to, or can be removed here.
+    // For robustness, attempt to remove it here as well, in case Python script didn't.
+    if (remove("stop.txt") != 0) {
+        // cerr << "Note: stop.txt not found or could not be removed (may have been handled by monitor)." << endl;
+    }
+    // --- End Read Monitor Report ---
 
     // Tracking time statistics
     sort(vTimesTrack.begin(),vTimesTrack.end());
