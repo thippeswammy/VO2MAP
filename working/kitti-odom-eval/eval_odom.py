@@ -5,17 +5,17 @@ import argparse
 from kitti_odometry import KittiEvalOdom
 
 parser = argparse.ArgumentParser(description='KITTI evaluation')
-parser.add_argument('--result', type=str, required=True,
+parser.add_argument('--result', type=str, default='/home/sdv_edge2/PycharmProjects/VO2MAP/working/kitti-odom-eval/result/example_1',
                     help="Result directory")
 parser.add_argument('--align', type=str,
                     choices=['scale', 'scale_7dof', '7dof', '6dof','None'],
-                    default='None',
+                    default='scale_7dof',
                     help="alignment type")
 parser.add_argument('--seqs',
                     nargs="+",
                     type=int,
                     help="sequences to be evaluated",
-                    default=None)
+                    default=1)
 args = parser.parse_args()
 
 eval_tool = KittiEvalOdom()
@@ -29,7 +29,7 @@ eval_tool.eval(
     gt_dir,
     result_dir,
     alignment=args.align,
-    seqs=args.seqs,
+    seqs=[args.seqs],
 )
 # else:
 #     print("Double check the path!")

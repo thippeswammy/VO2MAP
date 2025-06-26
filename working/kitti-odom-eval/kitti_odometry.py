@@ -623,7 +623,7 @@ class KittiEvalOdom():
             print("{0:.2f}".format(seq_ate[i]))
             print("{0:.3f}".format(seq_rpe_trans[i]))
             print("{0:.3f}".format(seq_rpe_rot[i] * 180 / np.pi))
-        return list_
+        return []
 
 
 '''

@@ -71,9 +71,9 @@ def compute_absolute_trajectory_error(estimated, groundtruth):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data_dir_root", type=str, default="../../../data/", help="dataset root")
+parser.add_argument("--data_dir_root", type=str, default="/home/sdv_edge2/PycharmProjects/VO2MAP/data/", help="dataset root")
 parser.add_argument("--dataset_type", type=str, default='KITTI', choices=['KITTI', 'TUM'], help="dataset type")
-parser.add_argument("--len_trajMap", type=int, default=2000, help="size of the trajectory map")
+parser.add_argument("--len_trajMap", type=int, default=5000, help="size of the trajectory map")
 args = parser.parse_args()
 
 if __name__ == "__main__":
@@ -85,14 +85,14 @@ if __name__ == "__main__":
     if os.path.exists(stop_file):
         os.remove(stop_file)
 
-    monitor_cmd = ["python", r"F:\RunningProjects\VisualOdemetry\Visual-odometry-tutorial\utils\monitor.py", "--pid",
+    monitor_cmd = ["python", r"/home/sdv_edge2/PycharmProjects/VO2MAP/utils/monitor.py", "--pid",
                    str(PID), "--output_file", output_file, "--stop_file", stop_file]
     monitor_process = subprocess.Popen(monitor_cmd)
     print(f"Started monitoring process with PID {monitor_process.pid}")
 
     Start_time = time.time_ns()
 
-    seq = '09'
+    seq = '01'
     dataset_reader = DatasetReaderKITTI(args.data_dir_root + 'kitti-odom/' + seq)
     K = dataset_reader.readCameraMatrix()
 
@@ -200,8 +200,8 @@ if __name__ == "__main__":
     if len(kitti_positions) == len(track_positions):
         estimated_aligned = np.copy(track_positions)
         kitti_positions_np = np.asarray(kitti_positions, dtype=np.float32)
-        np.save('estimated_aligned.npy', estimated_aligned)
-        np.save('kitti_positions.npy', kitti_positions_np)
+        # np.save('estimated_aligned.npy', estimated_aligned)
+        # np.save('kitti_positions.npy', kitti_positions_np)
         plot_3d_trajectories_interactive(estimated_aligned, kitti_positions)
         ate = compute_absolute_trajectory_error(track_positions, kitti_positions)
         print(f"\n\n[RESULT] Absolute Trajectory Error (ATE): {ate:.4f} meters")
