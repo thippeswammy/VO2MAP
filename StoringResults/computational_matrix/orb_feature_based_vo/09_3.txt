@@ -1,0 +1,16 @@
+Processing frames: 100%|██████████| 1590/1590 [16:34<00:00,  1.60frame/s]
+Total Time = 994.55 s
+Frames processed = 1591
+FPS = 1.67 fps
+
+[AVERAGE USAGE]
+{'avg_cpu': 204.68024417314092,
+ 'avg_cpu_overall': 34.11337402885682,
+ 'avg_gpu': 0.0,
+ 'avg_gpu_mem': 0.0,
+ 'avg_gpu_power': 0.0,
+ 'avg_ram': 126.34907828107659,
+ 'monitor_duration_seconds': 993.910178577}
+
+
+[RESULT] Absolute Trajectory Error (ATE): 69.4177 meters

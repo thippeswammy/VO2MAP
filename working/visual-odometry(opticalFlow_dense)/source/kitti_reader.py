@@ -60,7 +60,7 @@ class DatasetReaderKITTI:
             position = (tx, ty, tz)
             scale = sqrt((tx - tx_prev) ** 2 + (ty - ty_prev) ** 2 + (tz - tz_prev) ** 2)
 
-            return position, scale
+            return position, 1
 
     def readGroundTruthPositionRotation(self, frameId):
         groundtruthFile = os.path.join(self._datasetPath, "poses.txt")

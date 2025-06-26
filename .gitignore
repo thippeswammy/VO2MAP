@@ -28,5 +28,5 @@ working/kitti-odom-eval/.*html
 /notUsefull/DeepMatchVO/ckpt/model-258000.meta
 /NotWorking/VOLDOR/demo/opencv_world4110.dll
 /NotWorking/VOLDOR/demo/ORBvoc.bin
-/working/kitti-odom-eval/vo_data/*.html
-/working/kitti-odom-eval/vo_data/*.png
+/working/kitti-odom-eval/vo_data/*/*.html
+/working/kitti-odom-eval/vo_data/*/*.png
