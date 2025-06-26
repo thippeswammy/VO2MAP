@@ -23,3 +23,5 @@ cmake ..  # (Don't disable FFmpeg this time)
 make -j$(nproc)
 
 ./Examples/Monocular/mono_kitti Vocabulary/ORBvoc.txt Examples/Monocular/KITTIX.yaml ./dataset/sequences/09
+
+./Examples/Stereo/stereo_kitti Vocabulary/ORBvoc.txt Examples/Stereo/KITTI00-02.yaml ./dataset/sequences/02

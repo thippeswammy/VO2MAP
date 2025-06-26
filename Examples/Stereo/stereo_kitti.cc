@@ -1,37 +1,16 @@
-/**
-* This file is part of ORB-SLAM2.
-*
-* Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
-* For more information see <https://github.com/raulmur/ORB_SLAM2>
-*
-* ORB-SLAM2 is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* ORB-SLAM2 is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
-*/
-
-
 #include<iostream>
 #include<algorithm>
 #include<fstream>
 #include<iomanip>
 #include<chrono>
-#include<vector> // Added for vector
-#include<string> // Added for string
-#include<cstdlib> // For system()
-#include<cstdio>  // For remove()
-#include<unistd.h> // For getpid() and usleep()
-
+#include<vector>
+#include<string>
+#include<cstdlib>
+#include<cstdio>
+#include<unistd.h>
+#include<sys/stat.h>
 #include<opencv2/core/core.hpp>
-
+#include<thread>
 #include<System.h>
 
 using namespace std;
@@ -39,9 +18,20 @@ using namespace std;
 void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
                 vector<string> &vstrImageRight, vector<double> &vTimestamps);
 
-// Function to read and print simple JSON content
-// This is a very basic parser. Assumes flat JSON or simple nested for printing.
+bool FileExistsAndNotEmpty(const string& filename) {
+    struct stat fileStat;
+    return (stat(filename.c_str(), &fileStat) == 0 && fileStat.st_size > 0);
+}
+
 void PrintJsonReport(const string& filename) {
+    int timeout = 5;
+    while (timeout-- > 0) {
+        if (FileExistsAndNotEmpty(filename)) {
+            break;
+        }
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+
     ifstream json_file(filename);
     if (json_file.is_open()) {
         cout << "--- Resource Usage Statistics (from " << filename << ") ---" << endl;
@@ -50,9 +40,7 @@ void PrintJsonReport(const string& filename) {
             cout << line << endl;
         }
         json_file.close();
-        if (remove(filename.c_str()) != 0) {
-            cerr << "Error deleting " << filename << endl;
-        }
+        remove(filename.c_str());
     } else {
         cerr << "Warning: Could not open " << filename << " to read statistics." << endl;
     }
@@ -66,123 +54,74 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // Retrieve paths to images
-    vector<string> vstrImageLeft;
-    vector<string> vstrImageRight;
+    vector<string> vstrImageLeft, vstrImageRight;
     vector<double> vTimestamps;
     LoadImages(string(argv[3]), vstrImageLeft, vstrImageRight, vTimestamps);
-
     const int nImages = vstrImageLeft.size();
 
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+    ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::STEREO, true);
 
-    // --- Launch Resource Monitor ---
     pid_t current_pid = getpid();
     char command[256];
-    // Assuming resource_monitor.py is in the same directory as the executable or in PATH.
-    // Adjust path to resource_monitor.py if it's located elsewhere.
     sprintf(command, "python3 resource_monitor.py %d &", current_pid);
     cout << "Launching resource monitor for PID " << current_pid << " with command: " << command << endl;
     int system_ret = system(command);
     if (system_ret != 0) {
         cerr << "Error: Failed to launch resource_monitor.py. Return code: " << system_ret << endl;
-        // Depending on requirements, you might want to exit or continue without monitoring.
     }
-    // --- End Launch Resource Monitor ---
 
-    // Vector for tracking time statistics
-    vector<float> vTimesTrack;
-    vTimesTrack.resize(nImages);
+    vector<float> vTimesTrack(nImages);
 
     cout << endl << "-------" << endl;
     cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages << endl << endl;   
+    cout << "Images in the sequence: " << nImages << endl << endl;
 
-    // Main loop
     cv::Mat imLeft, imRight;
     for(int ni=0; ni<nImages; ni++)
     {
-        // Read left and right images from file
-        imLeft = cv::imread(vstrImageLeft[ni],CV_LOAD_IMAGE_UNCHANGED);
-        imRight = cv::imread(vstrImageRight[ni],CV_LOAD_IMAGE_UNCHANGED);
+        imLeft = cv::imread(vstrImageLeft[ni], CV_LOAD_IMAGE_UNCHANGED);
+        imRight = cv::imread(vstrImageRight[ni], CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
 
-        if(imLeft.empty())
-        {
-            cerr << endl << "Failed to load image at: "
-                 << string(vstrImageLeft[ni]) << endl;
+        if(imLeft.empty()) {
+            cerr << endl << "Failed to load image at: " << vstrImageLeft[ni] << endl;
             return 1;
         }
 
-#ifdef COMPILEDWITHC11
-        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-#else
-        std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
-#endif
+        auto t1 = chrono::steady_clock::now();
+        SLAM.TrackStereo(imLeft, imRight, tframe);
+        auto t2 = chrono::steady_clock::now();
 
-        // Pass the images to the SLAM system
-        SLAM.TrackStereo(imLeft,imRight,tframe);
+        double ttrack = chrono::duration_cast<chrono::duration<double>>(t2 - t1).count();
+        vTimesTrack[ni] = ttrack;
 
-#ifdef COMPILEDWITHC11
-        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-#else
-        std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
-#endif
+        double T = 0;
+        if(ni < nImages-1) T = vTimestamps[ni+1] - tframe;
+        else if(ni > 0) T = tframe - vTimestamps[ni-1];
 
-        double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
-
-        vTimesTrack[ni]=ttrack;
-
-        // Wait to load the next frame
-        double T=0;
-        if(ni<nImages-1)
-            T = vTimestamps[ni+1]-tframe;
-        else if(ni>0)
-            T = tframe-vTimestamps[ni-1];
-
-        if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+        if(ttrack < T)
+            usleep((T - ttrack) * 1e6);
     }
 
-    // --- Signal Resource Monitor to Stop ---
     cout << "Signaling resource monitor to stop..." << endl;
     ofstream stop_file("stop.txt");
-    if (stop_file.is_open()) {
-        stop_file.close(); // Just creating the file is enough
-    } else {
-        cerr << "Error: Unable to create stop.txt to signal monitor." << endl;
-    }
-    // --- End Signal Resource Monitor ---
+    if (stop_file.is_open()) stop_file.close();
+    else cerr << "Error: Unable to create stop.txt to signal monitor." << endl;
 
-    // Stop all threads
     SLAM.Shutdown();
 
-    // --- Wait for and Read Monitor Report ---
     cout << "Waiting for resource monitor to finalize and write report..." << endl;
-    // Simple wait - could be improved with file existence check in a loop
-    usleep(2000000); // Wait for 2 seconds (adjust as needed, Python script might take a moment)
+    this_thread::sleep_for(chrono::seconds(2));
 
     PrintJsonReport("resource_usage.json");
-    // stop.txt is typically removed by the Python script if it needs to, or can be removed here.
-    // For robustness, attempt to remove it here as well, in case Python script didn't.
-    if (remove("stop.txt") != 0) {
-        // cerr << "Note: stop.txt not found or could not be removed (may have been handled by monitor)." << endl;
-    }
-    // --- End Read Monitor Report ---
+    remove("stop.txt");
 
-    // Tracking time statistics
-    sort(vTimesTrack.begin(),vTimesTrack.end());
-    float totaltime = 0;
-    for(int ni=0; ni<nImages; ni++)
-    {
-        totaltime+=vTimesTrack[ni];
-    }
+    sort(vTimesTrack.begin(), vTimesTrack.end());
+    float totaltime = accumulate(vTimesTrack.begin(), vTimesTrack.end(), 0.0f);
     cout << "-------" << endl << endl;
     cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
-    // Save camera trajectory
     SLAM.SaveTrajectoryKITTI("CameraTrajectory.txt");
 
     return 0;
@@ -191,19 +130,12 @@ int main(int argc, char **argv)
 void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
                 vector<string> &vstrImageRight, vector<double> &vTimestamps)
 {
-    ifstream fTimes;
-    string strPathTimeFile = strPathToSequence + "/times.txt";
-    fTimes.open(strPathTimeFile.c_str());
-    while(!fTimes.eof())
-    {
-        string s;
-        getline(fTimes,s);
-        if(!s.empty())
-        {
-            stringstream ss;
-            ss << s;
-            double t;
-            ss >> t;
+    ifstream fTimes(strPathToSequence + "/times.txt");
+    string s;
+    while (getline(fTimes, s)) {
+        if (!s.empty()) {
+            stringstream ss(s);
+            double t; ss >> t;
             vTimestamps.push_back(t);
         }
     }
@@ -215,8 +147,7 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
     vstrImageLeft.resize(nTimes);
     vstrImageRight.resize(nTimes);
 
-    for(int i=0; i<nTimes; i++)
-    {
+    for(int i=0; i<nTimes; i++) {
         stringstream ss;
         ss << setfill('0') << setw(6) << i;
         vstrImageLeft[i] = strPrefixLeft + ss.str() + ".png";
