@@ -40,33 +40,47 @@ def umeyama_alignment(x, y, with_scale=False):
     return r, t, c
 
 
+import ast
+
+
 def parse_computational_metrics(file_path):
-    """Parse computational metrics from txt file."""
-    metrics = {'total_time': 0.0, 'frames_processed': 0, 'fps': 0.0,
-               'avg_cpu': 0.0, 'avg_cpu_overall': 0.0, 'avg_gpu': 0.0,
-               'avg_gpu_mem': 0.0, 'avg_gpu_power': 0.0, 'avg_ram': 0.0,
-               'monitor_duration': 0.0}
+    """Parse computational metrics from txt file with robust error handling."""
+    metrics = {
+        'total_time': 0.0, 'frames_processed': 0, 'fps': 0.0,
+        'avg_cpu': 0.0, 'avg_cpu_overall': 0.0, 'avg_gpu': 0.0,
+        'avg_gpu_mem': 0.0, 'avg_gpu_power': 0.0, 'avg_ram': 0.0,
+        'monitor_duration': 0.0
+    }
     try:
         with open(file_path, 'r') as f:
             lines = f.readlines()
-            for line in lines:
-                line = line.strip()
-                if 'Total Time' in line:
-                    metrics['total_time'] = float(line.split('=')[1].split()[0])
-                elif 'Frames processed' in line:
-                    metrics['frames_processed'] = int(line.split('=')[1].split()[0])
-                elif 'FPS' in line:
-                    metrics['fps'] = float(line.split('=')[1].split()[0])
-                elif '[AVERAGE USAGE]' in line:
-                    for subline in lines[lines.index(line) + 1:]:
-                        if '}' in subline:
-                            break
-                        key, value = subline.split(':')
-                        key = key.strip().replace("'", "").replace(" ", "_")
-                        if key in metrics:
-                            metrics[key] = float(value.split(',')[0].strip())
+            for i, line in enumerate(lines):
+                stripped = line.strip()
+                if 'Total Time' in stripped:
+                    metrics['total_time'] = float(stripped.split('=')[1].split()[0])
+                elif 'Frames processed' in stripped:
+                    metrics['frames_processed'] = int(stripped.split('=')[1].split()[0])
+                elif 'FPS' in stripped:
+                    metrics['fps'] = float(stripped.split('=')[1].split()[0])
+                elif '[AVERAGE USAGE]' in stripped:
+                    # Expect the dictionary to be in the next line(s)
+                    dict_lines = []
+                    for l in lines[i + 1:]:
+                        if '[RESULT]' in l:
+                            break  # stop at result block
+                        dict_lines.append(l.strip())
+                    try:
+                        usage_dict = ast.literal_eval(''.join(dict_lines))
+                        for key in usage_dict:
+                            mapped_key = key.strip().lower()
+                            if mapped_key in metrics:
+                                metrics[mapped_key] = float(usage_dict[key])
+                            elif mapped_key == 'monitor_duration_seconds':
+                                metrics['monitor_duration'] = float(usage_dict[key])
+                    except Exception as e:
+                        print(f"Error parsing [AVERAGE USAGE] block in {file_path}: {e}")
     except Exception as e:
-        print(f"Error parsing computational metrics from {file_path}: {e}")
+        print(f"Error reading {file_path}: {e}")
     return metrics
 
 
