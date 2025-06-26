@@ -4,14 +4,15 @@ import os
 import json
 import psutil
 # Attempt to import pynvml and set a flag
+pynvml_imported = False
 try:
-    from pynvml import nvmlInit, nvmlShutdown, nvmlDeviceGetCount, nvmlDeviceGetHandleByIndex, \
-                       nvmlDeviceGetUtilizationRates, nvmlDeviceGetMemoryInfo, nvmlDeviceGetPowerUsage, \
-                       NVMLError
-    pynvml_available = True
+    from pynvml import (nvmlInit, nvmlShutdown, nvmlDeviceGetCount,
+                        nvmlDeviceGetHandleByIndex, nvmlDeviceGetUtilizationRates,
+                        nvmlDeviceGetMemoryInfo, nvmlDeviceGetPowerUsage, NVMLError)
+    pynvml_imported = True
 except ImportError:
-    pynvml_available = False
-    print("pynvml library not found. GPU monitoring will be disabled.")
+    # This print occurs at import time, which is fine.
+    print("pynvml library not found or failed to import. GPU monitoring will be disabled.")
 
 def get_gpu_metrics(handle):
     metrics = {}
@@ -59,14 +60,14 @@ def main():
     # e.g., [{'gpu_util_percent': [], 'gpu_mem_used_mb': [], 'gpu_power_watts': []}, ...]
     gpu_metrics_data_list = []
 
-
-    if pynvml_available:
+    nvml_active = False # Local flag in main to track if NVML is successfully initialized and active
+    if pynvml_imported: # Check if pynvml was successfully imported at the global scope
         try:
             nvmlInit()
             device_count = nvmlDeviceGetCount()
             if device_count == 0:
                 print("No NVIDIA GPU detected by pynvml.")
-                pynvml_available = False
+                # nvml_active remains False
             else:
                 print(f"Found {device_count} NVIDIA GPU(s).")
                 for i in range(device_count):
@@ -80,9 +81,13 @@ def main():
                         })
                     except NVMLError as e:
                         print(f"Error getting handle for GPU {i}: {e}")
+
+                if gpu_handles: # Only set nvml_active to True if we actually got handles
+                    nvml_active = True
+
         except NVMLError as e:
-            print(f"Error initializing NVML: {e}")
-            pynvml_available = False
+            print(f"Error initializing NVML or getting GPU information: {e}")
+            # nvml_active remains False
 
     print("Monitoring started. Waiting for stop.txt to appear...")
     monitoring_duration_seconds = 0
@@ -117,7 +122,7 @@ def main():
             if current_ram_mb is not None:
                 ram_readings_mb.append(current_ram_mb)
 
-            if pynvml_available and gpu_handles:
+            if nvml_active and gpu_handles: # Use the local nvml_active flag
                 for i, handle in enumerate(gpu_handles):
                     try:
                         metrics = get_gpu_metrics(handle)
@@ -137,15 +142,11 @@ def main():
     except KeyboardInterrupt:
         print("Monitoring interrupted by user.")
     finally:
-        if pynvml_available:
-            try:
-                # Check if nvmlInit was successfully called by checking if device_count was set (or handles exist)
-                # This avoids calling nvmlShutdown if nvmlInit failed.
-                if 'device_count' in locals() and nvmlDeviceGetCount() > 0:
-                     nvmlShutdown()
-            except NameError: # device_count might not be defined if nvmlInit failed early
-                pass
-            except NVMLError as e:
+        if nvml_active: # Use the local nvml_active flag from main's scope
+             try:
+                nvmlShutdown()
+                print("NVML Shutdown successful.")
+             except NVMLError as e:
                 print(f"Error during nvmlShutdown: {e}")
 
     results = {}
@@ -162,7 +163,7 @@ def main():
     # Initialize GPU results with None
     results['gpus_avg_metrics'] = []
 
-    if pynvml_available and gpu_handles:
+    if nvml_active and gpu_handles: # Use the local nvml_active flag
         for i in range(len(gpu_handles)):
             gpu_avg_data = {
                 'gpu_index': i,
