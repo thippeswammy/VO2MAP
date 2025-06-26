@@ -83,12 +83,3 @@ def monitor_resources(pid, output_file, stop_file):
 
     # print(f"Monitoring results saved to {output_file}")
 
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--pid", type=int, required=True, help="Process ID to monitor")
-    parser.add_argument("--output_file", type=str, default="usage.json", help="Output file for usage stats")
-    parser.add_argument("--stop_file", type=str, default="stop.txt", help="File to signal stop")
-    args = parser.parse_args()
-
-    monitor_resources(args.pid, args.output_file, args.stop_file)

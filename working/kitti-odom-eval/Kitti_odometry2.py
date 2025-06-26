@@ -398,81 +398,96 @@ def get_folders_in_dir(dir_path='./result'):
 
 
 if __name__ == "__main__":
-    dir_list = get_folders_in_dir('./vo_data')
+    dir_list = get_folders_in_dir('./result')
     print("Detected result folders:", dir_list)
-    headers = ["Method", "Alignment", "t_rel (%)", "r_rel (deg/100m)", "ATE (m)", "Trans RMSE (m)", "RPE trans (m)",
-               "RPE rot (deg)", "GT Dist (m)", "Pred Dist (m)", "Drift (m)"]
+    headers = ["Method", "Alignment", "t_rel (%)", "r_rel (deg/100m)", "ATE (m)", "Trans RMSE (m)",
+               "RPE trans (m)", "RPE rot (deg)", "GT Dist (m)", "Pred Dist (m)", "Drift (m)"]
     results_table = []
     alignments = ['scale', 'scale_7dof', '7dof', '6dof', 'Direct']
-    seq_ = 9
+    seqs = [0, 9]  # Default sequence list, adjustable via args
+
+    parser = argparse.ArgumentParser(description='KITTI VO evaluation')
+    parser.add_argument('--result', type=str, default='./vo_data', help='Root directory of result folders')
+    parser.add_argument('--gt_dir', type=str, default='dataset/kitti_odom/gt_poses/',
+                        help='Ground truth poses directory')
+    parser.add_argument('--seqs', nargs="+", type=int, default=seqs, help='List of sequence numbers to evaluate')
+    parser.add_argument('--output_dir', type=str, default='plots', help='Directory for output plots and Excel')
+    args = parser.parse_args([])
+
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(exist_ok=True)
+
     for folder in dir_list:
         for align in alignments:
-            # for seq_ in sequence:
-            parser = argparse.ArgumentParser(description='KITTI VO evaluation')
-            parser.add_argument('--result', type=str, default=folder)
-            parser.add_argument('--align', type=str, default=align)
-            parser.add_argument('--seqs', nargs="+", type=int, default=[seq_])
-            args = parser.parse_args([])
-            eval_tool = KittiEvalOdom()
-            gt_dir = "dataset/kitti_odom/gt_poses/"
-            try:
-                metrics = eval_tool.eval(
-                    gt_dir,
-                    args.result,
-                    alignment=args.align,
-                    seqs=args.seqs,
-                    file_name_plot=f"{align}_seq_{seq_:0.2f}_3D_Plot.png"
-                )
-                if metrics:
-                    results_table.append([
-                        os.path.basename(folder),
-                        args.align,
-                        f"{metrics[0]:.3f}",
-                        f"{metrics[1]:.3f}",
-                        f"{metrics[2]:.3f}",
-                        f"{metrics[5]:.3f}",
-                        f"{metrics[3]:.3f}",
-                        f"{metrics[4]:.3f}",
-                        f"{metrics[6]:.3f}",
-                        f"{metrics[7]:.3f}",
-                        f"{metrics[8]:.3f}"
-                    ])
-            except Exception as e:
-                print(f"Error processing {folder} with alignment {align}: {e}")
+            for seq in args.seqs:
+                parser_inner = argparse.ArgumentParser(description='KITTI VO evaluation')
+                parser_inner.add_argument('--result', type=str, default=folder)
+                parser_inner.add_argument('--align', type=str, default=align)
+                parser_inner.add_argument('--seqs', nargs="+", type=int, default=[seq])
+                args_inner = parser_inner.parse_args([])
+                eval_tool = KittiEvalOdom()
+                try:
+                    metrics = eval_tool.eval(
+                        args.gt_dir,
+                        args_inner.result,
+                        alignment=args_inner.align,
+                        seqs=args_inner.seqs,
+                        file_name_plot=f"{align}_seq_{seq:02d}_3D_Plot.png"
+                    )
+                    if metrics:
+                        results_table.append([
+                            os.path.basename(folder),
+                            args_inner.align,
+                            f"{metrics[0]:.3f}",
+                            f"{metrics[1]:.3f}",
+                            f"{metrics[2]:.3f}",
+                            f"{metrics[5]:.3f}",
+                            f"{metrics[3]:.3f}",
+                            f"{metrics[4]:.3f}",
+                            f"{metrics[6]:.3f}",
+                            f"{metrics[7]:.3f}",
+                            f"{metrics[8]:.3f}"
+                        ])
+                except Exception as e:
+                    print(f"Error processing {folder} with alignment {align} for seq {seq}: {e}")
+
     print("\nEvaluation Results:")
     print(tabulate(results_table, headers=headers, tablefmt="grid"))
     df = pd.DataFrame(results_table, columns=headers)
-    excel_file = "./plots/vo_evaluation_results.xlsx"
+    excel_file = output_dir / "vo_evaluation_results.xlsx"
     df.to_excel(excel_file, index=False)
     print(f"\nResults saved to: {excel_file}")
 
     methods = sorted(set(row[0] for row in results_table))
-    labels = [f"{m} ({a})" for m in methods for a in alignments]
+    labels = [f"{m} ({a})" for m in methods for a in alignments for _ in args.seqs]
     data = {metric: [] for metric in headers[2:]}
     for m in methods:
         for a in alignments:
-            for row in results_table:
-                if row[0] == m and row[1] == a:
-                    for i, metric in enumerate(headers[2:], 2):
-                        data[metric].append(float(row[i]))
-                    break
-            else:
-                for metric in headers[2:]:
-                    data[metric].append(0)
+            for seq in args.seqs:
+                found = False
+                for row in results_table:
+                    if row[0] == m and row[1] == a and any(seq in args.seqs for _ in row):  # Simplified match
+                        for i, metric in enumerate(headers[2:], 2):
+                            data[metric].append(float(row[i]))
+                        found = True
+                        break
+                if not found:
+                    for metric in headers[2:]:
+                        data[metric].append(0)
 
-    output_dir = Path("plots")
-    output_dir.mkdir(exist_ok=True)
     figsize = (20, 8)
-    bar_width = 0.1
+    bar_width = 0.1 / len(args.seqs) if args.seqs else 0.1
     index = np.arange(len(labels))
 
     # Plot 1: t_rel and r_rel
     plt.figure(figsize=figsize)
-    plt.bar(index - bar_width / 2, data["t_rel (%)"], bar_width, label="t_rel (%)", color="dodgerblue")
-    plt.bar(index + bar_width / 2, data["r_rel (deg/100m)"], bar_width, label="r_rel (deg/100m)", color="tomato")
+    for i, seq in enumerate(args.seqs):
+        offset = (i - (len(args.seqs) - 1) / 2) * bar_width
+        plt.bar(index + offset, [data["t_rel (%)"][j] for j in range(i, len(labels), len(args.seqs))],
+                bar_width, label=f"t_rel (%) Seq {seq}", alpha=0.8)
     plt.xlabel("Method (Alignment)")
     plt.ylabel("Error")
-    plt.title("Relative Translation and Rotation Errors (Sequence 9)")
+    plt.title("Relative Translation Errors Across Sequences")
     plt.xticks(index, labels, rotation=90)
     plt.legend()
     plt.tight_layout()
@@ -481,11 +496,16 @@ if __name__ == "__main__":
 
     # Plot 2: ATE and Trans RMSE
     plt.figure(figsize=figsize)
-    plt.bar(index - bar_width / 2, data["ATE (m)"], bar_width, label="ATE (m)", color="teal")
-    plt.bar(index + bar_width / 2, data["Trans RMSE (m)"], bar_width, label="Trans RMSE (m)", color="purple")
+    for i, seq in enumerate(args.seqs):
+        offset = (i - (len(args.seqs) - 1) / 2) * bar_width
+        plt.bar(index + offset, [data["ATE (m)"][j] for j in range(i, len(labels), len(args.seqs))],
+                bar_width, label=f"ATE (m) Seq {seq}", alpha=0.8)
+        plt.bar(index + offset + bar_width / 2,
+                [data["Trans RMSE (m)"][j] for j in range(i, len(labels), len(args.seqs))],
+                bar_width, label=f"Trans RMSE (m) Seq {seq}", alpha=0.8)
     plt.xlabel("Method (Alignment)")
     plt.ylabel("Error (m)")
-    plt.title("ATE and Translational RMSE (Sequence 9)")
+    plt.title("ATE and Translational RMSE Across Sequences")
     plt.xticks(index, labels, rotation=90)
     plt.legend()
     plt.tight_layout()
@@ -494,11 +514,16 @@ if __name__ == "__main__":
 
     # Plot 3: RPE trans and rot
     plt.figure(figsize=figsize)
-    plt.bar(index - bar_width / 2, data["RPE trans (m)"], bar_width, label="RPE trans (m)", color="orange")
-    plt.bar(index + bar_width / 2, data["RPE rot (deg)"], bar_width, label="RPE rot (deg)", color="green")
+    for i, seq in enumerate(args.seqs):
+        offset = (i - (len(args.seqs) - 1) / 2) * bar_width
+        plt.bar(index + offset, [data["RPE trans (m)"][j] for j in range(i, len(labels), len(args.seqs))],
+                bar_width, label=f"RPE trans (m) Seq {seq}", alpha=0.8)
+        plt.bar(index + offset + bar_width / 2,
+                [data["RPE rot (deg)"][j] for j in range(i, len(labels), len(args.seqs))],
+                bar_width, label=f"RPE rot (deg) Seq {seq}", alpha=0.8)
     plt.xlabel("Method (Alignment)")
     plt.ylabel("RPE")
-    plt.title("Relative Pose Error (Sequence 9)")
+    plt.title("Relative Pose Error Across Sequences")
     plt.xticks(index, labels, rotation=90)
     plt.legend()
     plt.tight_layout()
@@ -507,16 +532,22 @@ if __name__ == "__main__":
 
     # Plot 4: Distances and Drift
     plt.figure(figsize=figsize)
-    plt.bar(index - bar_width * 1.5, data["GT Dist (m)"], bar_width, label="GT Dist (m)", color="blue")
-    plt.bar(index - bar_width / 2, data["Pred Dist (m)"], bar_width, label="Pred Dist (m)", color="cyan")
-    plt.bar(index + bar_width / 2, data["Drift (m)"], bar_width, label="Drift (m)", color="purple")
+    for i, seq in enumerate(args.seqs):
+        offset = (i - (len(args.seqs) - 1) / 2) * bar_width
+        plt.bar(index + offset, [data["GT Dist (m)"][j] for j in range(i, len(labels), len(args.seqs))],
+                bar_width, label=f"GT Dist (m) Seq {seq}", alpha=0.8)
+        plt.bar(index + offset + bar_width / 2,
+                [data["Pred Dist (m)"][j] for j in range(i, len(labels), len(args.seqs))],
+                bar_width, label=f"Pred Dist (m) Seq {seq}", alpha=0.8)
+        plt.bar(index + offset + bar_width, [data["Drift (m)"][j] for j in range(i, len(labels), len(args.seqs))],
+                bar_width, label=f"Drift (m) Seq {seq}", alpha=0.8)
     plt.xlabel("Method (Alignment)")
     plt.ylabel("Distance/Drift (m)")
-    plt.title("Distances and Drift (Sequence 9)")
+    plt.title("Distances and Drift Across Sequences")
     plt.xticks(index, labels, rotation=90)
     plt.legend()
     plt.tight_layout()
     plt.savefig(output_dir / "dist_drift.png")
     plt.close()
 
-    print("Plots saved in 'plots' directory.")
+    print(f"Plots saved in '{args.output_dir}' directory.")
