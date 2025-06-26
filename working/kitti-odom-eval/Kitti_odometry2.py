@@ -40,6 +40,36 @@ def umeyama_alignment(x, y, with_scale=False):
     return r, t, c
 
 
+def parse_computational_metrics(file_path):
+    """Parse computational metrics from txt file."""
+    metrics = {'total_time': 0.0, 'frames_processed': 0, 'fps': 0.0,
+               'avg_cpu': 0.0, 'avg_cpu_overall': 0.0, 'avg_gpu': 0.0,
+               'avg_gpu_mem': 0.0, 'avg_gpu_power': 0.0, 'avg_ram': 0.0,
+               'monitor_duration': 0.0}
+    try:
+        with open(file_path, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                line = line.strip()
+                if 'Total Time' in line:
+                    metrics['total_time'] = float(line.split('=')[1].split()[0])
+                elif 'Frames processed' in line:
+                    metrics['frames_processed'] = int(line.split('=')[1].split()[0])
+                elif 'FPS' in line:
+                    metrics['fps'] = float(line.split('=')[1].split()[0])
+                elif '[AVERAGE USAGE]' in line:
+                    for subline in lines[lines.index(line) + 1:]:
+                        if '}' in subline:
+                            break
+                        key, value = subline.split(':')
+                        key = key.strip().replace("'", "").replace(" ", "_")
+                        if key in metrics:
+                            metrics[key] = float(value.split(',')[0].strip())
+    except Exception as e:
+        print(f"Error parsing computational metrics from {file_path}: {e}")
+    return metrics
+
+
 class KittiEvalOdom:
     """Evaluate odometry results for KITTI dataset."""
 
@@ -373,14 +403,17 @@ def get_folders_in_dir(dir_path='./vo_data'):
 if __name__ == "__main__":
     dir_list = get_folders_in_dir('./result')
     print("Detected result folders:", dir_list)
-    headers = ["Method", "Alignment", "t_rel (%)", "r_rel (deg/100m)", "ATE (m)", "Trans RMSE (m)",
-               "RPE trans (m)", "RPE rot (deg)", "GT Dist (m)", "Pred Dist (m)", "Drift (m)"]
+    eval_headers = ["Method", "Alignment", "t_rel (%)", "r_rel (deg/100m)", "ATE (m)", "Trans RMSE (m)",
+                    "RPE trans (m)", "RPE rot (deg)", "GT Dist (m)", "Pred Dist (m)", "Drift (m)"]
+    comp_headers = ["Method", "Alignment", "Total Time (s)", "Frames Processed", "FPS", "Avg CPU (%)",
+                    "Avg CPU Overall (%)", "Avg GPU (%)", "Avg GPU Mem (%)", "Avg GPU Power (W)", "Avg RAM (GB)"]
     results_table = []
-    alignments = ['Direct', 'scale', '6dof']
+    comp_table = []
+    alignments = ['Direct']
     base_seqs = [0, 9]  # Base sequence numbers
 
-    parser = argparse.ArgumentParser(description='KITTI VO evaluation with repetitions')
-    parser.add_argument('--result', type=str, default='./vo_data', help='Root directory of result folders')
+    parser = argparse.ArgumentParser(description='KITTI VO evaluation with repetitions and computational metrics')
+    parser.add_argument('--result', type=str, default='./result', help='Root directory of result folders')
     parser.add_argument('--gt_dir', type=str, default='dataset/kitti_odom/gt_poses/',
                         help='Ground truth poses directory')
     parser.add_argument('--seqs', nargs="+", type=int, default=base_seqs,
@@ -393,112 +426,152 @@ if __name__ == "__main__":
     # Expand sequences to include repetitions (e.g., 00_1, 00_2, 00_3)
     seq_repeats = [(f"{seq:02}", i) for seq in args.seqs for i in range(1, 4)]
     print("Sequence repetitions:", seq_repeats)
+
     for folder in dir_list:
         for align in alignments:
             for seq, repeat in seq_repeats:
                 seq_str = f"{seq}_{repeat}"
+                eval_path = os.path.join(folder.replace('result', 'eval_matrix'), f"{seq_str}.txt")
+                comp_path = os.path.join(folder.replace('result', 'Computational_matrix'), f"{seq_str}.txt")
+                if not os.path.exists(eval_path) or not os.path.exists(comp_path):
+                    print(f"Missing files for {seq_str} in {folder}")
+                    continue
                 parser_inner = argparse.ArgumentParser(description='KITTI VO evaluation')
-                parser_inner.add_argument('--result', type=str, default=folder)
+                parser_inner.add_argument('--result', type=str, default=eval_path)
                 parser_inner.add_argument('--align', type=str, default=align)
                 parser_inner.add_argument('--seqs', nargs="+", type=int, default=[int(seq)])
                 args_inner = parser_inner.parse_args([])
                 eval_tool = KittiEvalOdom()
                 try:
-                    metrics = eval_tool.eval(
+                    eval_metrics = eval_tool.eval(
                         args.gt_dir,
-                        args_inner.result,
+                        os.path.dirname(eval_path),
                         alignment=args_inner.align,
                         seqs=args_inner.seqs,
                         eval_seqs=seq_str,
                         file_name_plot=f"{align}_seq_{seq_str}_3D_Plot.png"
                     )
-                    if metrics:
+                    comp_metrics = parse_computational_metrics(comp_path)
+                    if eval_metrics:
                         results_table.append([
                                                  os.path.basename(folder),
                                                  args_inner.align,
-                                                 f"{metrics[0]:.3f}",
-                                                 f"{metrics[1]:.3f}",
-                                                 f"{metrics[2]:.3f}",
-                                                 f"{metrics[5]:.3f}",
-                                                 f"{metrics[3]:.3f}",
-                                                 f"{metrics[4]:.3f}",
-                                                 f"{metrics[6]:.3f}",
-                                                 f"{metrics[7]:.3f}",
-                                                 f"{metrics[8]:.3f}"
-                                             ] + [seq_str])  # Append seq_repeat as an extra column
+                                                 f"{eval_metrics[0]:.3f}",
+                                                 f"{eval_metrics[1]:.3f}",
+                                                 f"{eval_metrics[2]:.3f}",
+                                                 f"{eval_metrics[5]:.3f}",
+                                                 f"{eval_metrics[3]:.3f}",
+                                                 f"{eval_metrics[4]:.3f}",
+                                                 f"{eval_metrics[6]:.3f}",
+                                                 f"{eval_metrics[7]:.3f}",
+                                                 f"{eval_metrics[8]:.3f}"
+                                             ] + [seq_str])
+                    if comp_metrics['frames_processed'] > 0:
+                        comp_table.append([
+                                              os.path.basename(folder),
+                                              align,
+                                              f"{comp_metrics['total_time']:.3f}",
+                                              f"{comp_metrics['frames_processed']}",
+                                              f"{comp_metrics['fps']:.3f}",
+                                              f"{comp_metrics['avg_cpu']:.3f}",
+                                              f"{comp_metrics['avg_cpu_overall']:.3f}",
+                                              f"{comp_metrics['avg_gpu']:.3f}",
+                                              f"{comp_metrics['avg_gpu_mem']:.3f}",
+                                              f"{comp_metrics['avg_gpu_power']:.3f}",
+                                              f"{comp_metrics['avg_ram']:.3f}"
+                                          ] + [seq_str])
                 except Exception as e:
                     print(f"Error processing {folder} with alignment {align} for seq {seq_str}: {e}")
 
     # Display detailed results for each repetition
     print("\nDetailed Evaluation Results for Each Repetition:")
-    print(tabulate(results_table, headers=headers + ["Sequence"], tablefmt="grid"))
-    df_detailed = pd.DataFrame(results_table, columns=headers + ["Sequence"])
-    excel_detailed_file = output_dir / "vo_evaluation_results_detailed.xlsx"
-    df_detailed.to_excel(excel_detailed_file, index=False)
-    print(f"\nDetailed results saved to: {excel_detailed_file}")
+    print(tabulate(results_table, headers=eval_headers + ["Sequence"], tablefmt="grid"))
+    df_detailed_eval = pd.DataFrame(results_table, columns=eval_headers + ["Sequence"])
+    excel_detailed_eval_file = output_dir / "vo_evaluation_results_detailed_eval.xlsx"
+    df_detailed_eval.to_excel(excel_detailed_eval_file, index=False)
+    print(f"\nDetailed evaluation results saved to: {excel_detailed_eval_file}")
 
-    # Aggregate results by base sequence and alignment, averaging over repetitions for all base_seqs
-    averaged_results = []
+    print("\nDetailed Computational Results for Each Repetition:")
+    print(tabulate(comp_table, headers=comp_headers + ["Sequence"], tablefmt="grid"))
+    df_detailed_comp = pd.DataFrame(comp_table, columns=comp_headers + ["Sequence"])
+    excel_detailed_comp_file = output_dir / "vo_evaluation_results_detailed_comp.xlsx"
+    df_detailed_comp.to_excel(excel_detailed_comp_file, index=False)
+    print(f"\nDetailed computational results saved to: {excel_detailed_comp_file}")
+
+    # Aggregate results by base sequence and alignment
+    averaged_eval_results = []
+    averaged_comp_results = []
     for folder in set(row[0] for row in results_table):
         for align in alignments:
             for seq in args.seqs:
                 seq_str = f"{seq:02}"
-                seq_data = [row for row in results_table if
-                            row[0] == folder and row[1] == align and row[11].startswith(seq_str + "_")]
-                if seq_data:
-                    # Check if all three repetitions are present
+                eval_data = [row for row in results_table if
+                             row[0] == folder and row[1] == align and row[11].startswith(seq_str + "_")]
+                comp_data = [row for row in comp_table if
+                             row[0] == folder and row[1] == align and row[11].startswith(seq_str + "_")]
+                if eval_data and comp_data:
                     expected_repeats = [f"{seq_str}_{i}" for i in range(1, 4)]
-                    available_repeats = [row[11] for row in seq_data]
-                    if all(rep in available_repeats for rep in expected_repeats):
-                        # Collect metrics for averaging and convert strings to floats
-                        metrics_list = [[float(row[i]) for i in range(2, 11)] for row in seq_data]  # Convert to floats
-                        avg_metrics = [sum(col) / 3 for col in zip(*metrics_list)]  # Average across 3 repetitions
-                        averaged_results.append([
-                            folder,
-                            align,
-                            f"{avg_metrics[0]:.3f}",
-                            f"{avg_metrics[1]:.3f}",
-                            f"{avg_metrics[2]:.3f}",
-                            f"{avg_metrics[3]:.3f}",
-                            f"{avg_metrics[4]:.3f}",
-                            f"{avg_metrics[5]:.3f}",
-                            f"{avg_metrics[6]:.3f}",
-                            f"{avg_metrics[7]:.3f}",
-                            f"{avg_metrics[8]:.3f}",
-                            seq_str  # Base sequence
+                    eval_repeats = [row[11] for row in eval_data]
+                    comp_repeats = [row[11] for row in comp_data]
+                    if all(rep in eval_repeats for rep in expected_repeats) and all(
+                            rep in comp_repeats for rep in expected_repeats):
+                        eval_metrics_list = [[float(row[i]) for i in range(2, 11)] for row in eval_data]
+                        comp_metrics_list = [[float(row[i]) for i in range(2, 11)] for row in comp_data]
+                        avg_eval_metrics = [sum(col) / 3 for col in zip(*eval_metrics_list)]
+                        avg_comp_metrics = [sum(col) / 3 for col in zip(*comp_metrics_list)]
+                        averaged_eval_results.append([
+                            folder, align,
+                            f"{avg_eval_metrics[0]:.3f}", f"{avg_eval_metrics[1]:.3f}", f"{avg_eval_metrics[2]:.3f}",
+                            f"{avg_eval_metrics[3]:.3f}", f"{avg_eval_metrics[4]:.3f}", f"{avg_eval_metrics[5]:.3f}",
+                            f"{avg_eval_metrics[6]:.3f}", f"{avg_eval_metrics[7]:.3f}", f"{avg_eval_metrics[8]:.3f}",
+                            seq_str
+                        ])
+                        averaged_comp_results.append([
+                            folder, align,
+                            f"{avg_comp_metrics[0]:.3f}", f"{avg_comp_metrics[1]}", f"{avg_comp_metrics[2]:.3f}",
+                            f"{avg_comp_metrics[3]:.3f}", f"{avg_comp_metrics[4]:.3f}", f"{avg_comp_metrics[5]:.3f}",
+                            f"{avg_comp_metrics[6]:.3f}", f"{avg_comp_metrics[7]:.3f}", f"{avg_comp_metrics[8]:.3f}",
+                            seq_str
                         ])
                     else:
                         print(f"Warning: Incomplete repetitions for seq {seq_str} in {folder} with {align}")
 
     print("\nAveraged Evaluation Results:")
-    print(tabulate(averaged_results, headers=headers + ["Base Sequence"], tablefmt="grid"))
-    df_averaged = pd.DataFrame(averaged_results, columns=headers + ["Base Sequence"])
-    excel_averaged_file = output_dir / "vo_evaluation_results_averaged.xlsx"
-    df_averaged.to_excel(excel_averaged_file, index=False)
-    print(f"\nAveraged results saved to: {excel_averaged_file}")
+    print(tabulate(averaged_eval_results, headers=eval_headers + ["Base Sequence"], tablefmt="grid"))
+    df_averaged_eval = pd.DataFrame(averaged_eval_results, columns=eval_headers + ["Base Sequence"])
+    excel_averaged_eval_file = output_dir / "vo_evaluation_results_averaged_eval.xlsx"
+    df_averaged_eval.to_excel(excel_averaged_eval_file, index=False)
+    print(f"\nAveraged evaluation results saved to: {excel_averaged_eval_file}")
 
-    methods = sorted(set(row[0] for row in averaged_results))
+    print("\nAveraged Computational Results:")
+    print(tabulate(averaged_comp_results, headers=comp_headers + ["Base Sequence"], tablefmt="grid"))
+    df_averaged_comp = pd.DataFrame(averaged_comp_results, columns=comp_headers + ["Base Sequence"])
+    excel_averaged_comp_file = output_dir / "vo_evaluation_results_averaged_comp.xlsx"
+    df_averaged_comp.to_excel(excel_averaged_comp_file, index=False)
+    print(f"\nAveraged computational results saved to: {excel_averaged_comp_file}")
+
+    # Plotting (simplified, focusing on evaluation metrics for now)
+    methods = sorted(set(row[0] for row in averaged_eval_results))
     labels = [f"{m} ({a})" for m in methods for a in alignments]
-    data = {metric: [] for metric in headers[2:]}
+    eval_data = {metric: [] for metric in eval_headers[2:]}
     for m in methods:
         for a in alignments:
-            for row in averaged_results:
+            for row in averaged_eval_results:
                 if row[0] == m and row[1] == a:
-                    for i, metric in enumerate(headers[2:], 2):
-                        data[metric].append(float(row[i]))
+                    for i, metric in enumerate(eval_headers[2:], 2):
+                        eval_data[metric].append(float(row[i]))
                     break
             else:
-                for metric in headers[2:]:
-                    data[metric].append(0)
+                for metric in eval_headers[2:]:
+                    eval_data[metric].append(0)
 
     figsize = (20, 8)
     bar_width = 0.1
     index = np.arange(len(labels))
 
-    # Plot 1: t_rel and r_rel
     plt.figure(figsize=figsize)
-    plt.bar(index - bar_width / 2, data["t_rel (%)"], bar_width, label="t_rel (%)", color="dodgerblue")
-    plt.bar(index + bar_width / 2, data["r_rel (deg/100m)"], bar_width, label="r_rel (deg/100m)", color="tomato")
+    plt.bar(index - bar_width / 2, eval_data["t_rel (%)"], bar_width, label="t_rel (%)", color="dodgerblue")
+    plt.bar(index + bar_width / 2, eval_data["r_rel (deg/100m)"], bar_width, label="r_rel (deg/100m)", color="tomato")
     plt.xlabel("Method (Alignment)")
     plt.ylabel("Error")
     plt.title("Averaged Relative Translation and Rotation Errors")
@@ -506,46 +579,6 @@ if __name__ == "__main__":
     plt.legend()
     plt.tight_layout()
     plt.savefig(output_dir / "averaged_relative_errors.png")
-    plt.close()
-
-    # Plot 2: ATE and Trans RMSE
-    plt.figure(figsize=figsize)
-    plt.bar(index - bar_width / 2, data["ATE (m)"], bar_width, label="ATE (m)", color="teal")
-    plt.bar(index + bar_width / 2, data["Trans RMSE (m)"], bar_width, label="Trans RMSE (m)", color="purple")
-    plt.xlabel("Method (Alignment)")
-    plt.ylabel("Error (m)")
-    plt.title("Averaged ATE and Translational RMSE")
-    plt.xticks(index, labels, rotation=90)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(output_dir / "averaged_ate_rmse.png")
-    plt.close()
-
-    # Plot 3: RPE trans and rot
-    plt.figure(figsize=figsize)
-    plt.bar(index - bar_width / 2, data["RPE trans (m)"], bar_width, label="RPE trans (m)", color="orange")
-    plt.bar(index + bar_width / 2, data["RPE rot (deg)"], bar_width, label="RPE rot (deg)", color="green")
-    plt.xlabel("Method (Alignment)")
-    plt.ylabel("RPE")
-    plt.title("Averaged Relative Pose Error")
-    plt.xticks(index, labels, rotation=90)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(output_dir / "averaged_rpe.png")
-    plt.close()
-
-    # Plot 4: Distances and Drift
-    plt.figure(figsize=figsize)
-    plt.bar(index - bar_width * 1.5, data["GT Dist (m)"], bar_width, label="GT Dist (m)", color="blue")
-    plt.bar(index - bar_width / 2, data["Pred Dist (m)"], bar_width, label="Pred Dist (m)", color="cyan")
-    plt.bar(index + bar_width / 2, data["Drift (m)"], bar_width, label="Drift (m)", color="purple")
-    plt.xlabel("Method (Alignment)")
-    plt.ylabel("Distance/Drift (m)")
-    plt.title("Averaged Distances and Drift")
-    plt.xticks(index, labels, rotation=90)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(output_dir / "averaged_dist_drift.png")
     plt.close()
 
     print(f"Plots saved in '{args.output_dir}' directory.")
