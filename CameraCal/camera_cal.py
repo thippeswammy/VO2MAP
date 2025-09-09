@@ -7,7 +7,7 @@ import numpy as np
 
 # # chessboard photos calibration constants
 NX, NY = (7, 7)
-Cal_img_path = r'DashCameraImg'
+Cal_img_path = r'SamsungImg'
 
 path_list = []
 for file_name in os.listdir(Cal_img_path):
@@ -43,7 +43,7 @@ def get_camera_matrices():
             imgPoints.append(corners)
             # Optionally, display the image with corners
             cv2.drawChessboardCorners(curr_image, (NX, NY), corners, ret)
-            cv2.imshow('Chessboard Corners', curr_image)
+            cv2.imshow('Chessboard Corners', cv2.resize(curr_image, None, fx=0.8, fy=0.8, interpolation=cv2.INTER_AREA))
             cv2.waitKey(1)
         img_size = (gray.shape[1], gray.shape[0])
     cv2.destroyAllWindows()
