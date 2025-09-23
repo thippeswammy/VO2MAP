@@ -1,3 +1,5 @@
-./Data/CUSTOM
-./Data/KITTI
-.*png
+Data/KITTI
+Data/CUSTOM
+CameraCal/SamsungImg
+CameraCal/DashCameraImg
+.idea
