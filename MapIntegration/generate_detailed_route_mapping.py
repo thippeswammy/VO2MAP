@@ -6,7 +6,7 @@ import openrouteservice
 
 # Initialize ORS client
 client = openrouteservice.Client(
-    key='5b3ce3597851110001cf6248ab9c3fa94a254ed99f97d8193b32b999'
+    key='5...................................9'
 )
 
 # Place names
